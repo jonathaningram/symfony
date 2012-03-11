@@ -67,7 +67,7 @@
         <service id="translation.loader.mo" class="%translation.loader.mo.class%">
             <tag name="translation.loader" alias="mo" />
         </service>
-        
+
         <service id="translation.loader.qt" class="%translation.loader.qt.class%">
             <tag name="translation.loader" alias="ts" />
         </service>
@@ -88,8 +88,13 @@
             <tag name="translation.dumper" alias="php" />
         </service>
 
+<<<<<<< HEAD
         <service id="tranlsation.dumper.xliff" class="%translation.dumper.xliff.class%">
             <tag name="translation.dumper" alias="xliff" />
+=======
+        <service id="translation.dumper.xliff" class="%translation.dumper.xliff.class%">
+            <tag name="translation.dumper" alias="xlf" />
+>>>>>>> upstream/master
         </service>
 
         <service id="translation.dumper.po" class="%translation.dumper.po.class%">

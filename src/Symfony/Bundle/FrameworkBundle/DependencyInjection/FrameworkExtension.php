@@ -56,7 +56,7 @@ class FrameworkExtension extends Extension
             $container->setAlias('debug.controller_resolver', 'controller_resolver');
         }
 
-        $configuration = new Configuration($container->getParameter('kernel.debug'));
+        $configuration = $this->getConfiguration($configs, $container);
         $config = $this->processConfiguration($configuration, $configs);
 
         if (isset($config['charset'])) {
@@ -146,6 +146,11 @@ class FrameworkExtension extends Extension
         ));
     }
 
+    public function getConfiguration(array $config, ContainerBuilder $container)
+    {
+        return new Configuration($container->getParameter('kernel.debug'));
+    }
+
     /**
      * Loads Form configuration.
      *
@@ -202,7 +207,7 @@ class FrameworkExtension extends Extension
             'file'    => 'Symfony\Component\HttpKernel\Profiler\FileProfilerStorage',
             'mongodb' => 'Symfony\Component\HttpKernel\Profiler\MongoDbProfilerStorage',
         );
-        list($class, ) = explode(':', $config['dsn']);
+        list($class, ) = explode(':', $config['dsn'], 2);
         if (!isset($supported[$class])) {
             throw new \LogicException(sprintf('Driver "%s" is not supported for the profiler.', $class));
         }
@@ -384,6 +389,7 @@ class FrameworkExtension extends Extension
         $this->addClassesToCompile(array(
             'Symfony\\Bundle\\FrameworkBundle\\Templating\\GlobalVariables',
             'Symfony\\Bundle\\FrameworkBundle\\Templating\\EngineInterface',
+            'Symfony\\Component\\Templating\\StreamingEngineInterface',
             'Symfony\\Component\\Templating\\TemplateNameParserInterface',
             'Symfony\\Component\\Templating\\TemplateNameParser',
             'Symfony\\Component\\Templating\\EngineInterface',
@@ -519,7 +525,7 @@ class FrameworkExtension extends Extension
                 })->in($dirs);
                 foreach ($finder as $file) {
                     // filename is domain.locale.format
-                    list($domain, $locale, $format) = explode('.', $file->getBasename());
+                    list($domain, $locale, $format) = explode('.', $file->getBasename(), 3);
 
                     $translator->addMethodCall('addResource', array($format, (string) $file, $locale, $domain));
                 }
@@ -560,7 +566,8 @@ class FrameworkExtension extends Extension
 
     private function getValidatorXmlMappingFiles(ContainerBuilder $container)
     {
-        $files = array(__DIR__.'/../../../Component/Form/Resources/config/validation.xml');
+        $reflClass = new \ReflectionClass('Symfony\Component\Form\FormInterface');
+        $files = array(dirname($reflClass->getFileName()).'/Resources/config/validation.xml');
         $container->addResource(new FileResource($files[0]));
 
         foreach ($container->getParameter('kernel.bundles') as $bundle) {

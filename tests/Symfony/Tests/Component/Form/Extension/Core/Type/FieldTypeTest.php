@@ -117,6 +117,16 @@ class FieldTypeTest extends TypeTestCase
         $this->assertEquals('name', $view->get('full_name'));
     }
 
+    public function testStripLeadingUnderscoresAndDigitsFromId()
+    {
+        $form = $this->factory->createNamed('field', '_09name');
+        $view = $form->createView();
+
+        $this->assertEquals('name', $view->get('id'));
+        $this->assertEquals('_09name', $view->get('name'));
+        $this->assertEquals('_09name', $view->get('full_name'));
+    }
+
     public function testPassIdAndNameToViewWithParent()
     {
         $parent = $this->factory->createNamed('field', 'parent');
@@ -213,7 +223,7 @@ class FieldTypeTest extends TypeTestCase
     {
         $form = $this->factory->create('field', null, array('attr' => array()));
 
-        $this->assertEquals(0, count($form->getAttribute('attr')));
+        $this->assertCount(0, $form->getAttribute('attr'));
     }
 
     /**
@@ -254,4 +264,10 @@ class FieldTypeTest extends TypeTestCase
         $form = $this->factory->create('field', null, array('attr' => ''));
     }
 
+    public function testNameCanBeEmptyString()
+    {
+        $form = $this->factory->createNamed('field', '');
+
+        $this->assertEquals('', $form->getName());
+    }
 }

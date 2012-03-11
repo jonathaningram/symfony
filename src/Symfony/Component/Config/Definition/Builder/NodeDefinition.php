@@ -32,6 +32,8 @@ abstract class NodeDefinition implements NodeParentInterface
     protected $trueEquivalent;
     protected $falseEquivalent;
     protected $parent;
+    protected $info;
+    protected $example;
 
     /**
      * Constructor
@@ -57,6 +59,34 @@ abstract class NodeDefinition implements NodeParentInterface
     public function setParent(NodeParentInterface $parent)
     {
         $this->parent = $parent;
+
+        return $this;
+    }
+
+    /**
+     * Sets info message
+     *
+     * @param string $info The info text
+     *
+     * @return NodeDefinition
+     */
+    public function setInfo($info)
+    {
+        $this->info = $info;
+
+        return $this;
+    }
+
+    /**
+     * Sets example configuration
+     *
+     * @param example $example
+     *
+     * @return NodeDefinition
+     */
+    public function setExample($example)
+    {
+        $this->example = $example;
 
         return $this;
     }
@@ -92,7 +122,12 @@ abstract class NodeDefinition implements NodeParentInterface
             $this->validation->rules = ExprBuilder::buildExpressions($this->validation->rules);
         }
 
-        return $this->createNode();
+        $node = $this->createNode();
+
+        $node->setInfo($this->info);
+        $node->setExample($this->example);
+
+        return $node;
     }
 
     /**

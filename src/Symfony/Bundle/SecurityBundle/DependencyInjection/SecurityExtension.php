@@ -49,8 +49,8 @@ class SecurityExtension extends Extension
             return;
         }
 
-        // normalize and merge the actual configuration
-        $mainConfig = new MainConfiguration($this->factories, $this->userProviderFactories);
+        $mainConfig = $this->getConfiguration($configs, $container);
+
         $config = $this->processConfiguration($mainConfig, $configs);
 
         // load services
@@ -240,7 +240,7 @@ class SecurityExtension extends Extension
         $matcher = null;
         if (isset($firewall['request_matcher'])) {
             $matcher = new Reference($firewall['request_matcher']);
-        } else if (isset($firewall['pattern'])) {
+        } elseif (isset($firewall['pattern'])) {
             $matcher = $this->createRequestMatcher($container, $firewall['pattern']);
         }
 
@@ -483,6 +483,30 @@ class SecurityExtension extends Extension
             return $name;
         }
 
+        // Doctrine Entity DAO provider
+        if (isset($provider['entity'])) {
+            $container
+                ->setDefinition($name, new DefinitionDecorator('security.user.provider.entity'))
+                ->addArgument($provider['entity']['class'])
+                ->addArgument($provider['entity']['property'])
+            ;
+
+            return $name;
+        }
+
+        // In-memory DAO provider
+        $definition = $container->setDefinition($name, new DefinitionDecorator('security.user.provider.in_memory'));
+        foreach ($provider['users'] as $username => $user) {
+            $userId = $name.'_'.$username;
+
+            $container
+                ->setDefinition($userId, new DefinitionDecorator('security.user.provider.in_memory.user'))
+                ->setArguments(array($username, (string) $user['password'], $user['roles']))
+            ;
+
+            $definition->addMethodCall('createUser', array(new Reference($userId)));
+        }
+
         return $name;
     }
 
@@ -500,7 +524,7 @@ class SecurityExtension extends Extension
         // access denied handler setup
         if (isset($config['access_denied_handler'])) {
             $listener->replaceArgument(5, new Reference($config['access_denied_handler']));
-        } else if (isset($config['access_denied_url'])) {
+        } elseif (isset($config['access_denied_url'])) {
             $listener->replaceArgument(4, $config['access_denied_url']);
         }
 
@@ -568,6 +592,12 @@ class SecurityExtension extends Extension
     public function getNamespace()
     {
         return 'http://symfony.com/schema/dic/security';
+    }
+
+    public function getConfiguration(array $config, ContainerBuilder $container)
+    {
+        // first assemble the factories
+        return new MainConfiguration($this->factories, $this->userProviderFactories);
     }
 }
 

@@ -74,13 +74,25 @@ class FieldType extends AbstractType
         $name = $form->getName();
 
         if ($view->hasParent()) {
-            $parentId = $view->getParent()->get('id');
-            $parentFullName = $view->getParent()->get('full_name');
-            $id = sprintf('%s_%s', $parentId, $name);
-            $fullName = sprintf('%s[%s]', $parentFullName, $name);
+            if ('' === $name) {
+                throw new FormException('Form node with empty name can be used only as root form node.');
+            }
+
+            if ('' !== ($parentFullName = $view->getParent()->get('full_name'))) {
+                $id = sprintf('%s_%s', $view->getParent()->get('id'), $name);
+                $fullName = sprintf('%s[%s]', $parentFullName, $name);
+            } else {
+                $id = $name;
+                $fullName = $name;
+            }
         } else {
             $id = $name;
             $fullName = $name;
+
+            // Strip leading underscores and digits. These are allowed in
+            // form names, but not in HTML4 ID attributes.
+            // http://www.w3.org/TR/html401/struct/global.html#adef-id
+            $id = ltrim($id, '_0123456789');
         }
 
         $types = array();

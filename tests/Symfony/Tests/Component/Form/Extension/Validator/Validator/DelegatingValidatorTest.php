@@ -16,6 +16,7 @@ use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\Util\PropertyPath;
 use Symfony\Component\Form\Extension\Validator\Validator\DelegatingValidator;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ExecutionContext;
 
@@ -796,6 +797,80 @@ class DelegatingValidatorTest extends \PHPUnit_Framework_TestCase
         $form->bind(array('foo' => 'bar')); // reverse transformed to "foobar"
 
         DelegatingValidator::validateFormData($form, $context);
+    }
+
+    public function testValidateFormChildren()
+    {
+        $graphWalker = $this->getMockGraphWalker();
+        $metadataFactory = $this->getMockMetadataFactory();
+        $context = new ExecutionContext('Root', $graphWalker, $metadataFactory);
+        $form = $this->getBuilder()
+            ->setAttribute('cascade_validation', true)
+            ->setAttribute('validation_groups', array('group1', 'group2'))
+            ->getForm();
+        $form->add($this->getForm('firstName'));
+
+        $graphWalker->expects($this->once())
+            ->method('walkReference')
+            // validation happens in Default group, because the Callback
+            // constraint is in the Default group as well
+            ->with($form->getChildren(), Constraint::DEFAULT_GROUP, 'children', true);
+
+        DelegatingValidator::validateFormChildren($form, $context);
+    }
+
+    public function testValidateFormChildrenAppendsPropertyPath()
+    {
+        $graphWalker = $this->getMockGraphWalker();
+        $metadataFactory = $this->getMockMetadataFactory();
+        $context = new ExecutionContext('Root', $graphWalker, $metadataFactory);
+        $context->setPropertyPath('path');
+        $form = $this->getBuilder()
+            ->setAttribute('cascade_validation', true)
+            ->getForm();
+        $form->add($this->getForm('firstName'));
+
+        $graphWalker->expects($this->once())
+            ->method('walkReference')
+            ->with($form->getChildren(), 'Default', 'path.children', true);
+
+        DelegatingValidator::validateFormChildren($form, $context);
+    }
+
+    public function testValidateFormChildrenSetsCurrentPropertyToData()
+    {
+        $graphWalker = $this->getMockGraphWalker();
+        $metadataFactory = $this->getMockMetadataFactory();
+        $context = new ExecutionContext('Root', $graphWalker, $metadataFactory);
+        $form = $this->getBuilder()
+            ->setAttribute('cascade_validation', true)
+            ->getForm();
+        $form->add($this->getForm('firstName'));
+        $test = $this;
+
+        $graphWalker->expects($this->once())
+            ->method('walkReference')
+            ->will($this->returnCallback(function () use ($context, $test) {
+                $test->assertEquals('children', $context->getCurrentProperty());
+            }));
+
+        DelegatingValidator::validateFormChildren($form, $context);
+    }
+
+    public function testValidateFormChildrenDoesNothingIfDisabled()
+    {
+        $graphWalker = $this->getMockGraphWalker();
+        $metadataFactory = $this->getMockMetadataFactory();
+        $context = new ExecutionContext('Root', $graphWalker, $metadataFactory);
+        $form = $this->getBuilder()
+            ->setAttribute('cascade_validation', false)
+            ->getForm();
+        $form->add($this->getForm('firstName'));
+
+        $graphWalker->expects($this->never())
+            ->method('walkReference');
+
+        DelegatingValidator::validateFormChildren($form, $context);
     }
 
     public function testValidateIgnoresNonRoot()

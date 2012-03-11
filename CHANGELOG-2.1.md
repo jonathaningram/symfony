@@ -10,10 +10,15 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 2.1.0
 -----
 
-### DoctrineBrige
+### DoctrineBridge
 
  * added a default implementation of the ManagerRegistry
  * added a session storage for Doctrine DBAL
+
+### TwigBridge
+
+ * added a csrf_token function
+ * added a way to specify a default domain for a Twig template (via the 'trans_default_domain' tag)
 
 ### AbstractDoctrineBundle
 
@@ -21,6 +26,7 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 
 ### DoctrineBundle
 
+ * This bundle has been moved to the Doctrine organization
  * added optional `group_by` property to `EntityType` that supports either a `PropertyPath` or a `\Closure` that is evaluated on the entity choices
  * The `em` option for the `UniqueEntity` constraint is now optional (and should probably not be used anymore).
 
@@ -33,6 +39,7 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
  * [BC BREAK] assets_base_urls and base_urls merging strategy has changed
  * changed the default profiler storage to use the filesystem instead of SQLite
  * added support for placeholders in route defaults and requirements (replaced by the value set in the service container)
+ * added Filesystem component as a dependency
 
 ### SecurityBundle
 
@@ -48,29 +55,37 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
  * [BC BREAK] refactored the user provider configuration. The configuration
    changed for the chain provider and the memory provider:
 
-   Before:
+     Before:
 
-        security:
-            providers:
-                my_chain_provider:
-                    providers: [my_memory_provider, my_doctrine_provider]
-                my_memory_provider:
-                    users:
-                        toto: { password: foobar, roles: [ROLE_USER] }
-                        foo: { password: bar, roles: [ROLE_USER, ROLE_ADMIN] }
+     ``` yaml
+     security:
+         providers:
+             my_chain_provider:
+                 providers: [my_memory_provider, my_doctrine_provider]
+             my_memory_provider:
+                 users:
+                     toto: { password: foobar, roles: [ROLE_USER] }
+                     foo: { password: bar, roles: [ROLE_USER, ROLE_ADMIN] }
+     ```
 
-   After:
+     After:
 
-        security:
-            providers:
-                my_chain_provider:
-                    chain:
-                        providers: [my_memory_provider, my_doctrine_provider]
-                my_memory_provider:
-                    memory:
-                        users:
-                            toto: { password: foobar, roles: [ROLE_USER] }
-                            foo: { password: bar, roles: [ROLE_USER, ROLE_ADMIN] }
+     ``` yaml
+     security:
+         providers:
+             my_chain_provider:
+                 chain:
+                     providers: [my_memory_provider, my_doctrine_provider]
+             my_memory_provider:
+                 memory:
+                     users:
+                         toto: { password: foobar, roles: [ROLE_USER] }
+                         foo: { password: bar, roles: [ROLE_USER, ROLE_ADMIN] }
+     ```
+
+ * [BC BREAK] Method `equals` was removed from `UserInterface` to its own new
+   `EquatableInterface`, now user class can implement this interface to override
+   the default implementation of users equality test.
 
  * added a validator for the user password
  * added 'erase_credentials' as a configuration key (true by default)
@@ -89,17 +104,28 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 
 ### WebProfilerBundle
 
+[BC BREAK] You must clear old profiles after upgrading to 2.1 (don't forget to
+           remove the table if you are using a DB)
+
+ * added support for the request method
  * added a routing panel
  * added a timeline panel
  * The toolbar position can now be configured via the `position` option (can be `top` or `bottom`)
 
+### BrowserKit
+
+ * [BC BREAK] The CookieJar internals have changed to allow cookies with the same name on different sub-domains/sub-paths
+
 ### Config
 
+ * added a way to add documentation on configuration
  * implemented `Serializable` on resources
  * LoaderResolverInterface is now used instead of LoaderResolver for type hinting
 
 ### Console
 
+ * added a --raw option to the list command
+ * added support for STDERR in the console output class (errors are now sent to STDERR)
  * made the defaults (helper set, commands, input definition) in Application more easily customizable
  * added support for the shell even if readline is not available
 
@@ -113,6 +139,7 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 
 ### DomCrawler
 
+ * refactor the Form class internals to support multi-dimensional fields (the public API is backward compatible)
  * added a way to get parsing errors for Crawler::addHtmlContent() and Crawler::addXmlContent() via libxml functions
  * added support for submitting a form without a submit button
 
@@ -121,19 +148,54 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
  * added a reference to the EventDispatcher on the Event
  * added a reference to the Event name on the event
 
+### Filesystem
+
+ * created this new component
+
 ### Finder
 
  * Finder::exclude() now supports an array of directories as an argument
 
 ### Form
 
+ * [BC BREAK] child forms now aren't validated anymore by default
+ * made validation of form children configurable (new option: cascade_validation)
  * added support for validation groups as callbacks
  * made the translation catalogue configurable via the "translation_domain" option
  * added Form::getErrorsAsString() to help debugging forms
  * allowed setting different options for RepeatedType fields (like the label)
+ * added support for empty form name at root level, this enables rendering forms
+   without form name prefix in field names
+ * [BC BREAK] form and field names must start with a letter, digit or underscore
+   and only contain letters, digits, underscores, hyphens and colons
+ * [BC BREAK] changed default name of the prototype in the "collection" type
+   from "$$name$$" to "__name__". No dollars are appended/prepended to custom
+   names anymore.
+ * [BC BREAK] improved ChoiceListInterface and all of its implementations
+ * [BC BREAK] removed EntitiesToArrayTransformer and EntityToIdTransformer.
+   The former has been replaced by CollectionToArrayTransformer in combination
+   with EntityChoiceList, the latter is not required in the core anymore.
+
+ * [BC BREAK] renamed
+
+   * ArrayToBooleanChoicesTransformer to ChoicesToBooleanArrayTransformer
+   * ScalarToBooleanChoicesTransformer to ChoiceToBooleanArrayTransformer
+   * ArrayToChoicesTransformer to ChoicesToValuesTransformer
+   * ScalarToChoiceTransformer to ChoiceToValueTransformer
+
+   to be consistent with the naming in ChoiceListInterface.
+
+ * [BC BREAK] removed FormUtil::toArrayKey() and FormUtil::toArrayKeys().
+   They were merged into ChoiceList and have no public equivalent anymore.
+ * added ComplexChoiceList and ObjectChoiceList. Both let you select amongst
+   objects in a choice field, but feature different constructors.
+ * choice fields now throw a FormException if neither the "choices" nor the
+   "choice_list" option is set
+ * the radio field is now a child type of the checkbox field
 
 ### HttpFoundation
 
+ * added support for streamed responses
  * made Response::prepare() method the place to enforce HTTP specification
  * [BC BREAK] moved management of the locale from the Session class to the Request class
  * added a generic access to the PHP built-in filter mechanism: ParameterBag::filter()
@@ -146,15 +208,22 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 
 ### HttpKernel
 
+ * added CacheClearerInterface
+ * added a kernel.terminate event
  * added a Stopwatch class
  * added WarmableInterface
  * improved extensibility between bundles
  * added a File-based profiler storage
  * added a MongoDB-based profiler storage
+ * moved Filesystem class to its own component
 
 ### Locale
 
  * added Locale::getIcuVersion() and Locale::getIcuDataVersion()
+
+### Process
+
+ * added ProcessBuilder
 
 ### Routing
 
@@ -169,32 +238,32 @@ To get the diff between two versions, go to https://github.com/symfony/symfony/c
 
 ### Serializer
 
- * [BC BREAK] convert the `item` XML tag to an array 
+ * [BC BREAK] changed `GetSetMethodNormalizer`'s key names from all lowercased to camelCased (e.g. `mypropertyvalue` to `myPropertyValue`)
+ * [BC BREAK] convert the `item` XML tag to an array
 
-   ``` xml
-   <?xml version="1.0"?>
-   <response>
-       <item><title><![CDATA[title1]]></title></item><item><title><![CDATA[title2]]></title></item>
-   </response>
-   ```
+     ``` xml
+     <?xml version="1.0"?>
+     <response>
+         <item><title><![CDATA[title1]]></title></item><item><title><![CDATA[title2]]></title></item>
+     </response>
+     ```
 
-   Before:
+     Before:
 
-        Array()
+          Array()
 
-   After:
+     After:
 
-        Array(
-            [item] => Array(
-                [0] => Array(
-                    [title] => title1
-                )
-                [1] => Array(
-                    [title] => title2
-                )
-            )
-        )
-
+          Array(
+              [item] => Array(
+                  [0] => Array(
+                      [title] => title1
+                  )
+                  [1] => Array(
+                      [title] => title2
+                  )
+              )
+          )
 
 ### Translation
 

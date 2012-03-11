@@ -193,6 +193,10 @@ class Form implements \IteratorAggregate, FormInterface
         $required = false, $readOnly = false, $errorBubbling = false,
         $emptyData = null, array $attributes = array())
     {
+        $name = (string) $name;
+
+        self::validateName($name);
+
         foreach ($clientTransformers as $transformer) {
             if (!$transformer instanceof DataTransformerInterface) {
                 throw new UnexpectedTypeException($transformer, 'Symfony\Component\Form\DataTransformerInterface');
@@ -211,7 +215,7 @@ class Form implements \IteratorAggregate, FormInterface
             }
         }
 
-        $this->name = (string) $name;
+        $this->name = $name;
         $this->dispatcher = $dispatcher;
         $this->types = $types;
         $this->clientTransformers = $clientTransformers;
@@ -303,6 +307,10 @@ class Form implements \IteratorAggregate, FormInterface
      */
     public function setParent(FormInterface $parent = null)
     {
+        if ('' === $this->getName()) {
+            throw new FormException('Form with empty name can not have parent form.');
+        }
+
         $this->parent = $parent;
 
         return $this;
@@ -577,13 +585,22 @@ class Form implements \IteratorAggregate, FormInterface
         switch ($request->getMethod()) {
             case 'POST':
             case 'PUT':
-                $data = array_replace_recursive(
-                    $request->request->get($this->getName(), array()),
-                    $request->files->get($this->getName(), array())
-                );
+            case 'DELETE':
+            case 'PATCH':
+                if ('' === $this->getName()) {
+                    $data = array_replace_recursive(
+                        $request->request->all(),
+                        $request->files->all()
+                    );
+                } else {
+                    $data = array_replace_recursive(
+                        $request->request->get($this->getName(), array()),
+                        $request->files->get($this->getName(), array())
+                    );
+                }
                 break;
             case 'GET':
-                $data = $request->query->get($this->getName(), array());
+                $data = '' === $this->getName() ? $request->query->all() : $request->query->get($this->getName(), array());
                 break;
             default:
                 throw new FormException(sprintf('The request method "%s" is not supported', $request->getMethod()));
@@ -1042,5 +1059,46 @@ class Form implements \IteratorAggregate, FormInterface
         }
 
         return $value;
+    }
+
+    /**
+     * Validates whether the given variable is a valid form name.
+     *
+     * @param string $name The tested form name.
+     *
+     * @throws UnexpectedTypeException If the name is not a string.
+     * @throws \InvalidArgumentException If the name contains invalid characters.
+     */
+    static public function validateName($name)
+    {
+        if (!is_string($name)) {
+            throw new UnexpectedTypeException($name, 'string');
+        }
+
+        if (!self::isValidName($name)) {
+            throw new \InvalidArgumentException(sprintf(
+                'The name "%s" contains illegal characters. Names should start with a letter, digit or underscore and only contains letters, digits, numbers, underscores ("_"), hyphens ("-") and colons (":").',
+                $name
+            ));
+        }
+    }
+
+    /**
+     * Returns whether the given variable contains a valid form name.
+     *
+     * A name is accepted if it
+     *
+     *   * is empty
+     *   * starts with a letter, digit or underscore
+     *   * contains only letters, digits, numbers, underscores ("_"),
+     *     hyphens ("-") and colons (":")
+     *
+     * @param string $name The tested form name.
+     *
+     * @return Boolean Whether the name is valid.
+     */
+    static public function isValidName($name)
+    {
+        return '' === $name || preg_match('/^[a-zA-Z0-9_][a-zA-Z0-9_\-:]*$/D', $name);
     }
 }

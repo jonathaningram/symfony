@@ -126,7 +126,7 @@ class YamlFileLoader extends FileLoader
             $this->container->setAlias($id, substr($service, 1));
 
             return;
-        } else if (isset($service['alias'])) {
+        } elseif (isset($service['alias'])) {
             $public = !array_key_exists('public', $service) || (Boolean) $service['public'];
             $this->container->setAlias($id, new Alias($service['alias'], $public));
 
@@ -221,6 +221,7 @@ class YamlFileLoader extends FileLoader
      * Loads a YAML file.
      *
      * @param string $file
+     *
      * @return array The file content
      */
     private function loadFile($file)
@@ -233,6 +234,7 @@ class YamlFileLoader extends FileLoader
      *
      * @param mixed $content
      * @param string $file
+     *
      * @return array
      *
      * @throws InvalidArgumentException When service file is not valid
@@ -271,13 +273,14 @@ class YamlFileLoader extends FileLoader
      * Resolves services.
      *
      * @param string $value
+     *
      * @return Reference
      */
     private function resolveServices($value)
     {
         if (is_array($value)) {
             $value = array_map(array($this, 'resolveServices'), $value);
-        } else if (is_string($value) &&  0 === strpos($value, '@')) {
+        } elseif (is_string($value) &&  0 === strpos($value, '@')) {
             if (0 === strpos($value, '@?')) {
                 $value = substr($value, 2);
                 $invalidBehavior = ContainerInterface::IGNORE_ON_INVALID_REFERENCE;

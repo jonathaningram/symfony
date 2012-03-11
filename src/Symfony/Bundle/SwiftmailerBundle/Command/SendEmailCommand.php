@@ -31,13 +31,14 @@ class SendEmailCommand extends ContainerAwareCommand
     {
         $this
             ->setName('swiftmailer:spool:send')
-            ->setDescription('Send emails from the spool')
+            ->setDescription('Sends emails from the spool')
             ->addOption('message-limit', 0, InputOption::VALUE_OPTIONAL, 'The maximum number of messages to send.')
             ->addOption('time-limit', 0, InputOption::VALUE_OPTIONAL, 'The time limit for sending messages (in seconds).')
+            ->addOption('recover-timeout', 0, InputOption::VALUE_OPTIONAL, 'The timeout for recovering messages that have taken too long to send (in seconds).')
             ->setHelp(<<<EOF
 The <info>swiftmailer:spool:send</info> command sends all emails from the spool.
 
-<info>php app/console swiftmailer:spool:send --message-limit=10 --time-limit=10</info>
+<info>php app/console swiftmailer:spool:send --message-limit=10 --time-limit=10 --recover-timeout=900</info>
 
 EOF
             )
@@ -54,8 +55,17 @@ EOF
 
         if ($transport instanceof \Swift_Transport_SpoolTransport) {
             $spool = $transport->getSpool();
-            $spool->setMessageLimit($input->getOption('message-limit'));
-            $spool->setTimeLimit($input->getOption('time-limit'));
+            if ($spool instanceof \Swift_ConfigurableSpool) {
+                $spool->setMessageLimit($input->getOption('message-limit'));
+                $spool->setTimeLimit($input->getOption('time-limit'));
+            }
+            if ($spool instanceof \Swift_FileSpool) {
+                if (null !== $input->getOption('recover-timeout')) {
+                    $spool->recover($input->getOption('recover-timeout'));
+                } else {
+                    $spool->recover();
+                }
+            }
             $sent = $spool->flushQueue($this->getContainer()->get('swiftmailer.transport.real'));
 
             $output->writeln(sprintf('sent %s emails', $sent));

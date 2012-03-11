@@ -93,6 +93,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      * Checks if we have an extension.
      *
      * @param string $name The name of the extension
+     *
      * @return Boolean If the extension exists
      *
      * @api
@@ -373,6 +374,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      *
      * @param ContainerBuilder $container The ContainerBuilder instance to merge.
      *
+     *
      * @throws BadMethodCallException When this ContainerBuilder is frozen
      *
      * @api
@@ -502,7 +504,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
 
         if (is_string($id)) {
             $id = new Alias($id);
-        } else if (!$id instanceof Alias) {
+        } elseif (!$id instanceof Alias) {
             throw new InvalidArgumentException('$id must be a string, or an Alias object.');
         }
 
@@ -845,6 +847,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      * Returns the Service Conditionals.
      *
      * @param mixed $value An array of conditionals to return.
+     *
      * @return array An array of Service conditionals
      */
     static public function getServiceConditionals($value)

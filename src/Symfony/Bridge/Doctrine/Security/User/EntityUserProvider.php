@@ -11,14 +11,14 @@
 
 namespace Symfony\Bridge\Doctrine\Security\User;
 
-use Doctrine\ORM\EntityManager;
+use Doctrine\Common\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * Wrapper around a Doctrine EntityManager.
+ * Wrapper around a Doctrine ObjectManager.
  *
  * Provides easy to use provisioning for Doctrine entity users.
  *
@@ -32,13 +32,14 @@ class EntityUserProvider implements UserProviderInterface
     private $property;
     private $metadata;
 
-    public function __construct(EntityManager $em, $class, $property = null)
+    public function __construct(ManagerRegistry $registry, $class, $property = null, $managerName = null)
     {
+        $em = $registry->getManager($managerName);
         $this->class = $class;
         $this->metadata = $em->getClassMetadata($class);
 
         if (false !== strpos($this->class, ':')) {
-            $this->class = $this->metadata->name;
+            $this->class = $this->metadata->getName();
         }
 
         $this->repository = $em->getRepository($class);
@@ -75,7 +76,6 @@ class EntityUserProvider implements UserProviderInterface
         if (!$user instanceof $this->class) {
             throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', get_class($user)));
         }
-        
 
         // The user must be reloaded via the primary key as all other data
         // might have changed without proper persistence in the database.
@@ -89,7 +89,11 @@ class EntityUserProvider implements UserProviderInterface
             );
         }
 
-        return $this->repository->find($id);
+        if (null === $refreshedUser = $this->repository->find($id)) {
+            throw new UsernameNotFoundException(sprintf('User with id %s not found', json_encode($id)));
+        }
+
+        return $refreshedUser;
     }
 
     /**
@@ -97,6 +101,6 @@ class EntityUserProvider implements UserProviderInterface
      */
     public function supportsClass($class)
     {
-        return $class === $this->class;
+        return $class === $this->class || is_subclass_of($class, $this->class);
     }
 }

@@ -21,7 +21,7 @@ class CollectionFormTest extends TypeTestCase
             'type' => 'field',
         ));
 
-        $this->assertEquals(0, count($form));
+        $this->assertCount(0, $form);
     }
 
     public function testSetDataAdjustsSize()
@@ -36,7 +36,7 @@ class CollectionFormTest extends TypeTestCase
 
         $this->assertInstanceOf('Symfony\Component\Form\Form', $form[0]);
         $this->assertInstanceOf('Symfony\Component\Form\Form', $form[1]);
-        $this->assertEquals(2, count($form));
+        $this->assertCount(2, $form);
         $this->assertEquals('foo@foo.com', $form[0]->getData());
         $this->assertEquals('foo@bar.com', $form[1]->getData());
         $this->assertEquals(20, $form[0]->getAttribute('max_length'));
@@ -45,7 +45,7 @@ class CollectionFormTest extends TypeTestCase
         $form->setData(array('foo@baz.com'));
         $this->assertInstanceOf('Symfony\Component\Form\Form', $form[0]);
         $this->assertFalse(isset($form[1]));
-        $this->assertEquals(1, count($form));
+        $this->assertCount(1, $form);
         $this->assertEquals('foo@baz.com', $form[0]->getData());
         $this->assertEquals(20, $form[0]->getAttribute('max_length'));
     }
@@ -125,7 +125,7 @@ class CollectionFormTest extends TypeTestCase
             'prototype' => false,
         ));
 
-        $this->assertFalse($form->has('$$name$$'));
+        $this->assertFalse($form->has('__name__'));
     }
 
     public function testPrototypeMultipartPropagation()
@@ -150,7 +150,7 @@ class CollectionFormTest extends TypeTestCase
         ));
 
         $data = $form->getData();
-        $this->assertFalse(isset($data['$$name$$']));
+        $this->assertFalse(isset($data['__name__']));
     }
 
     public function testGetDataDoesNotContainsPrototypeNameAfterDataAreSet()
@@ -163,7 +163,7 @@ class CollectionFormTest extends TypeTestCase
 
         $form->setData(array('foobar.png'));
         $data = $form->getData();
-        $this->assertFalse(isset($data['$$name$$']));
+        $this->assertFalse(isset($data['__name__']));
     }
 
     public function testPrototypeNameOption()
@@ -174,15 +174,15 @@ class CollectionFormTest extends TypeTestCase
             'allow_add' => true,
         ));
 
-        $this->assertSame('$$name$$', $form->getAttribute('prototype')->getName(), '$$name$$ is the default');
+        $this->assertSame('__name__', $form->getAttribute('prototype')->getName(), '__name__ is the default');
 
         $form = $this->factory->create('collection', null, array(
             'type'           => 'field',
             'prototype'      => true,
             'allow_add'      => true,
-            'prototype_name' => 'test',
+            'prototype_name' => '__test__',
         ));
 
-        $this->assertSame('$$test$$', $form->getAttribute('prototype')->getName());
+        $this->assertSame('__test__', $form->getAttribute('prototype')->getName());
     }
 }

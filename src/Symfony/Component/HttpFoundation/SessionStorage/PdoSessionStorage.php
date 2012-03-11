@@ -21,14 +21,14 @@ class PdoSessionStorage extends NativeSessionStorage
 {
     /**
      * PDO instance.
-     * 
+     *
      * @var \PDO
      */
     private $db;
-    
+
     /**
      * Database options.
-     * 
+     *
      * @var array
      */
     private $dbOptions;
@@ -150,7 +150,7 @@ class PdoSessionStorage extends NativeSessionStorage
         $dbTable    = $this->dbOptions['db_table'];
         $dbTimeCol = $this->dbOptions['db_time_col'];
 
-        // delete the record associated with this id
+        // delete the session records that have expired
         $sql = "DELETE FROM $dbTable WHERE $dbTimeCol < (:time - $lifetime)";
 
         try {
@@ -253,7 +253,7 @@ class PdoSessionStorage extends NativeSessionStorage
      *
      * @param string $id
      * @param string $data
-     * 
+     *
      * @return boolean True.
      */
     private function createNewSession($id, $data = '')

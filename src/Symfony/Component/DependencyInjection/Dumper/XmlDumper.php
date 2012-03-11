@@ -140,7 +140,8 @@ class XmlDumper extends Dumper
         }
 
         if ($definition->getFile()) {
-            $file = $this->document->createElement('file', $definition->getFile());
+            $file = $this->document->createElement('file');
+            $file->appendChild($this->document->createTextNode($definition->getFile()));
             $service->appendChild($file);
         }
 
@@ -229,16 +230,16 @@ class XmlDumper extends Dumper
             if (is_array($value)) {
                 $element->setAttribute('type', 'collection');
                 $this->convertParameters($value, $type, $element, 'key');
-            } else if (is_object($value) && $value instanceof Reference) {
+            } elseif (is_object($value) && $value instanceof Reference) {
                 $element->setAttribute('type', 'service');
                 $element->setAttribute('id', (string) $value);
                 $behaviour = $value->getInvalidBehavior();
                 if ($behaviour == ContainerInterface::NULL_ON_INVALID_REFERENCE) {
                     $element->setAttribute('on-invalid', 'null');
-                } else if ($behaviour == ContainerInterface::IGNORE_ON_INVALID_REFERENCE) {
+                } elseif ($behaviour == ContainerInterface::IGNORE_ON_INVALID_REFERENCE) {
                     $element->setAttribute('on-invalid', 'ignore');
                 }
-            } else if (is_object($value) && $value instanceof Definition) {
+            } elseif (is_object($value) && $value instanceof Definition) {
                 $element->setAttribute('type', 'service');
                 $this->addService($value, null, $element);
             } else {
@@ -256,6 +257,7 @@ class XmlDumper extends Dumper
      * Escapes arguments
      *
      * @param array $arguments
+     *
      * @return array
      */
     private function escape($arguments)
@@ -278,7 +280,6 @@ class XmlDumper extends Dumper
      * Converts php types to xml types.
      *
      * @param mixed $value Value to convert
-     * @throws RuntimeException When trying to dump object or resource
      */
     static public function phpToXml($value)
     {

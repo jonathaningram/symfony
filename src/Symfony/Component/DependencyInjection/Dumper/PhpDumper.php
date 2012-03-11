@@ -105,6 +105,7 @@ class PhpDumper extends Dumper
      *
      * @param string $cId
      * @param string $definition
+     *
      * @return string
      */
     private function addServiceLocalTempVariables($cId, $definition)
@@ -153,6 +154,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id The service id
      * @param Definition $definition
+     *
      * @return string
      */
     private function addServiceInclude($id, $definition)
@@ -182,6 +184,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id
      * @param Definition $definition
+     *
      * @return string
      */
     private function addServiceInlinedDefinitions($id, $definition)
@@ -260,6 +263,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id Service id
      * @param Definition $definition
+     *
      * @return string
      */
     private function addServiceReturn($id, $definition)
@@ -276,6 +280,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id
      * @param Definition $definition
+     *
      * @return string
      *
      * @throws InvalidArgumentException
@@ -299,7 +304,7 @@ class PhpDumper extends Dumper
         $instantiation = '';
         if (ContainerInterface::SCOPE_CONTAINER === $definition->getScope()) {
             $instantiation = "\$this->services['$id'] = ".($simple ? '' : '$instance');
-        } else if (ContainerInterface::SCOPE_PROTOTYPE !== $scope = $definition->getScope()) {
+        } elseif (ContainerInterface::SCOPE_PROTOTYPE !== $scope = $definition->getScope()) {
             $instantiation = "\$this->services['$id'] = \$this->scopedServices['$scope']['$id'] = ".($simple ? '' : '$instance');
         } elseif (!$simple) {
             $instantiation = '$instance';
@@ -338,6 +343,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id
      * @param Definition $definition
+     *
      * @return Boolean
      */
     private function isSimpleInstance($id, $definition)
@@ -361,6 +367,7 @@ class PhpDumper extends Dumper
      * @param string $id
      * @param Definition $definition
      * @param string $variableName
+     *
      * @return string
      */
     private function addServiceMethodCalls($id, $definition, $variableName = 'instance')
@@ -432,6 +439,7 @@ class PhpDumper extends Dumper
      * @param string $id
      * @param Definition $definition
      * @param string $variableName
+     *
      * @return string
      */
     private function addServiceConfigurator($id, $definition, $variableName = 'instance')
@@ -456,6 +464,7 @@ class PhpDumper extends Dumper
      *
      * @param string $id
      * @param Definition $definition
+     *
      * @return string
      */
     private function addService($id, $definition)
@@ -546,6 +555,7 @@ EOF;
      *
      * @param string $alias
      * @param string $id
+     *
      * @return string
      */
     private function addServiceAlias($alias, $id)
@@ -605,6 +615,7 @@ EOF;
      *
      * @param string $class Class name
      * @param string $baseClass The name of the base class
+     *
      * @return string
      */
     private function startClass($class, $baseClass)
@@ -642,6 +653,8 @@ EOF;
      */
     private function addConstructor()
     {
+        $arguments = $this->container->getParameterBag()->all() ? 'new ParameterBag($this->getDefaultParameters())' : null;
+
         $code = <<<EOF
 
     /**
@@ -649,7 +662,7 @@ EOF;
      */
     public function __construct()
     {
-        parent::__construct(new ParameterBag(\$this->getDefaultParameters()));
+        parent::__construct($arguments);
 
 EOF;
 
@@ -792,6 +805,7 @@ EOF;
      * @param array $parameters
      * @param string $path
      * @param integer $indent
+     *
      * @return string
      */
     private function exportParameters($parameters, $path = '', $indent = 12)
@@ -834,6 +848,7 @@ EOF;
      *
      * @param string $value
      * @param string $code
+     *
      * @return string
      */
     private function wrapServiceConditionals($value, $code)
@@ -857,15 +872,15 @@ EOF;
      * Builds service calls from arguments
      *
      * @param array  $arguments
-     * @param string $calls    By reference
-     * @param string $behavior By reference
+     * @param string &$calls    By reference
+     * @param string &$behavior By reference
      */
     private function getServiceCallsFromArguments(array $arguments, array &$calls, array &$behavior)
     {
         foreach ($arguments as $argument) {
             if (is_array($argument)) {
                 $this->getServiceCallsFromArguments($argument, $calls, $behavior);
-            } else if ($argument instanceof Reference) {
+            } elseif ($argument instanceof Reference) {
                 $id = (string) $argument;
 
                 if (!isset($calls[$id])) {
@@ -873,7 +888,7 @@ EOF;
                 }
                 if (!isset($behavior[$id])) {
                     $behavior[$id] = $argument->getInvalidBehavior();
-                } else if (ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE !== $behavior[$id]) {
+                } elseif (ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE !== $behavior[$id]) {
                     $behavior[$id] = $argument->getInvalidBehavior();
                 }
 
@@ -886,6 +901,7 @@ EOF;
      * Returns the inline definition
      *
      * @param Definition $definition
+     *
      * @return array
      */
     private function getInlinedDefinitions(Definition $definition)
@@ -909,6 +925,7 @@ EOF;
      * Gets the definition from arguments
      *
      * @param array $arguments
+     *
      * @return array
      */
     private function getDefinitionsFromArguments(array $arguments)
@@ -917,7 +934,7 @@ EOF;
         foreach ($arguments as $argument) {
             if (is_array($argument)) {
                 $definitions = array_merge($definitions, $this->getDefinitionsFromArguments($argument));
-            } else if ($argument instanceof Definition) {
+            } elseif ($argument instanceof Definition) {
                 $definitions = array_merge(
                     $definitions,
                     $this->getInlinedDefinitions($argument),
@@ -934,6 +951,7 @@ EOF;
      *
      * @param string $id
      * @param array $arguments
+     *
      * @return Boolean
      */
     private function hasReference($id, array $arguments)
@@ -943,7 +961,7 @@ EOF;
                 if ($this->hasReference($id, $argument)) {
                     return true;
                 }
-            } else if ($argument instanceof Reference) {
+            } elseif ($argument instanceof Reference) {
                 if ($id === (string) $argument) {
                     return true;
                 }
@@ -958,6 +976,7 @@ EOF;
      *
      * @param array $value
      * @param Boolean $interpolate
+     *
      * @return string
      */
     private function dumpValue($value, $interpolate = true)
@@ -1041,6 +1060,7 @@ EOF;
      * Dumps a parameter
      *
      * @param string $name
+     *
      * @return string
      */
     public function dumpParameter($name)
@@ -1057,6 +1077,7 @@ EOF;
      *
      * @param string    $id
      * @param Reference $reference
+     *
      * @return string
      */
     private function getServiceCall($id, Reference $reference = null)

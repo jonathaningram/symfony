@@ -60,6 +60,62 @@ class FormTest extends \PHPUnit_Framework_TestCase
         new Form('name', $this->dispatcher, array(), array(), array(), null, $validators);
     }
 
+    public function getHtml4Ids()
+    {
+        return array(
+            array('a0', true),
+            array('a9', true),
+            array('z0', true),
+            array('A0', true),
+            array('A9', true),
+            array('Z0', true),
+            array('#', false),
+            array('a#', false),
+            array('a$', false),
+            array('a%', false),
+            array('a ', false),
+            array("a\t", false),
+            array("a\n", false),
+            array('a-', true),
+            array('a_', true),
+            array('a:', true),
+            // Periods are allowed by the HTML4 spec, but disallowed by us
+            // because they break the generated property paths
+            array('a.', false),
+            // Contrary to the HTML4 spec, we allow names starting with a
+            // number, otherwise naming fields by collection indices is not
+            // possible.
+            // For root forms, leading digits will be stripped from the
+            // "id" attribute to produce valid HTML4.
+            array('0', true),
+            array('9', true),
+            // Contrary to the HTML4 spec, we allow names starting with an
+            // underscore, since this is already a widely used practice in
+            // Symfony2.
+            // For root forms, leading underscores will be stripped from the
+            // "id" attribute to produce valid HTML4.
+            array('_', true),
+        );
+    }
+
+    /**
+     * @dataProvider getHtml4Ids
+     */
+    public function testConstructAcceptsOnlyNamesValidAsIdsInHtml4($name, $accepted)
+    {
+        try {
+            new Form($name, $this->dispatcher);
+            if (!$accepted) {
+                $this->fail(sprintf('The value "%s" should not be accepted', $name));
+            }
+        } catch (\InvalidArgumentException $e) {
+            // if the value was not accepted, but should be, rethrow exception
+            if ($accepted) {
+                throw $e;
+            }
+        }
+    }
+
     public function testDataIsInitializedEmpty()
     {
         $norm = new FixedDataTransformer(array(
@@ -425,7 +481,7 @@ class FormTest extends \PHPUnit_Framework_TestCase
         $this->form->add($this->getBuilder('foo')->getForm());
         $this->form->add($this->getBuilder('bar')->getForm());
 
-        $this->assertEquals(2, count($this->form));
+        $this->assertCount(2, $this->form);
     }
 
     public function testIterator()
@@ -822,6 +878,8 @@ class FormTest extends \PHPUnit_Framework_TestCase
         return array(
             array('POST'),
             array('PUT'),
+            array('DELETE'),
+            array('PATCH'),
         );
     }
 
@@ -868,6 +926,49 @@ class FormTest extends \PHPUnit_Framework_TestCase
         unlink($path);
     }
 
+    /**
+     * @dataProvider requestMethodProvider
+     */
+    public function testBindPostOrPutRequestWithEmptyRootFormName($method)
+    {
+        $path = tempnam(sys_get_temp_dir(), 'sf2');
+        touch($path);
+
+        $values = array(
+            'name' => 'Bernhard',
+            'image' => array('filename' => 'foobar.png'),
+            'extra' => 'data',
+        );
+
+        $files = array(
+            'image' => array(
+                'error' => UPLOAD_ERR_OK,
+                'name' => 'upload.png',
+                'size' => 123,
+                'tmp_name' => $path,
+                'type' => 'image/png',
+            ),
+        );
+
+        $request = new Request(array(), $values, array(), array(), $files, array(
+            'REQUEST_METHOD' => $method,
+        ));
+
+        $form = $this->getBuilder('')->getForm();
+        $form->add($this->getBuilder('name')->getForm());
+        $form->add($this->getBuilder('image')->getForm());
+
+        $form->bindRequest($request);
+
+        $file = new UploadedFile($path, 'upload.png', 'image/png', 123, UPLOAD_ERR_OK);
+
+        $this->assertEquals('Bernhard', $form['name']->getData());
+        $this->assertEquals($file, $form['image']->getData());
+        $this->assertEquals(array('extra' => 'data'), $form->getExtraData());
+
+        unlink($path);
+    }
+
     public function testBindGetRequest()
     {
         $values = array(
@@ -889,6 +990,29 @@ class FormTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals('Bernhard', $form['firstName']->getData());
         $this->assertEquals('Schussek', $form['lastName']->getData());
+    }
+
+    public function testBindGetRequestWithEmptyRootFormName()
+    {
+        $values = array(
+            'firstName' => 'Bernhard',
+            'lastName' => 'Schussek',
+            'extra' => 'data'
+        );
+
+        $request = new Request($values, array(), array(), array(), array(), array(
+            'REQUEST_METHOD' => 'GET',
+        ));
+
+        $form = $this->getBuilder('')->getForm();
+        $form->add($this->getBuilder('firstName')->getForm());
+        $form->add($this->getBuilder('lastName')->getForm());
+
+        $form->bindRequest($request);
+
+        $this->assertEquals('Bernhard', $form['firstName']->getData());
+        $this->assertEquals('Schussek', $form['lastName']->getData());
+        $this->assertEquals(array('extra' => 'data'), $form->getExtraData());
     }
 
     public function testBindResetsErrors()
@@ -1022,6 +1146,24 @@ class FormTest extends \PHPUnit_Framework_TestCase
         $parent->add($this->getBuilder('foo')->getForm());
 
         $this->assertEquals("name:\n    ERROR: Error!\nfoo:\n    No errors\n", $parent->getErrorsAsString());
+    }
+
+    public function testFormCanHaveEmptyName()
+    {
+        $form = $this->getBuilder('')->getForm();
+
+        $this->assertEquals('', $form->getName());
+    }
+
+    /**
+     * @expectedException Symfony\Component\Form\Exception\FormException
+     * @expectedExceptionMessage Form with empty name can not have parent form.
+     */
+    public function testFormCannotHaveEmptyNameNotInRootLevel()
+    {
+        $parent = $this->getBuilder()
+            ->add($this->getBuilder(''))
+            ->getForm();
     }
 
     protected function getBuilder($name = 'name', EventDispatcherInterface $dispatcher = null)

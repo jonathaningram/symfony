@@ -225,8 +225,10 @@ class FormFactory implements FormFactoryInterface
                 }
 
                 $this->addType($type);
-            } else {
+            } elseif (is_string($type)) {
                 $type = $this->getType($type);
+            } else {
+                throw new UnexpectedTypeException($type, 'string or Symfony\Component\Form\FormTypeInterface');
             }
 
             $defaultOptions = $type->getDefaultOptions($options);
@@ -409,7 +411,7 @@ class FormFactory implements FormFactoryInterface
 
     private function validateFormTypeName(FormTypeInterface $type)
     {
-        if (!preg_match('/^[a-z0-9_]+$/i', $type->getName())) {
+        if (!preg_match('/^[a-z0-9_]*$/i', $type->getName())) {
             throw new FormException(sprintf('The "%s" form type name ("%s") is not valid. Names must only contain letters, numbers, and "_".', get_class($type), $type->getName()));
         }
     }

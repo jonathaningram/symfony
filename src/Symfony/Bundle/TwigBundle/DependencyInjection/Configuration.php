@@ -79,7 +79,7 @@ class Configuration implements ConfigurationInterface
                     ->useAttributeAsKey('key')
                     ->prototype('array')
                         ->beforeNormalization()
-                            ->ifTrue(function($v){ return is_string($v) && '@' === substr($v, 0, 1); })
+                            ->ifTrue(function($v){ return is_string($v) && 0 === strpos($v, '@'); })
                             ->then(function($v){ return array('id' => substr($v, 1), 'type' => 'service'); })
                         ->end()
                         ->beforeNormalization()
@@ -122,6 +122,7 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('debug')->defaultValue('%kernel.debug%')->end()
                 ->scalarNode('strict_variables')->end()
                 ->scalarNode('auto_reload')->end()
+                ->scalarNode('optimizations')->end()
             ->end()
         ;
     }

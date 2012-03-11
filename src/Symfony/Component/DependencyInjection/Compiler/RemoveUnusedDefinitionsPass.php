@@ -56,7 +56,7 @@ class RemoveUnusedDefinitionsPass implements RepeatablePassInterface
                     $sourceIds[] = $node->getId();
 
                     if ($node->isAlias()) {
-                        $referencingAlias[] = $node->getValue();
+                        $referencingAliases[] = $node->getValue();
                     }
                 }
                 $isReferenced = (count(array_unique($sourceIds)) - count($referencingAliases)) > 0;
@@ -70,7 +70,7 @@ class RemoveUnusedDefinitionsPass implements RepeatablePassInterface
                 $definition->setPublic(true);
                 $container->removeDefinition($id);
                 $compiler->addLogMessage($formatter->formatRemoveService($this, $id, 'replaces alias '.reset($referencingAliases)));
-            } else if (0 === count($referencingAliases) && false === $isReferenced) {
+            } elseif (0 === count($referencingAliases) && false === $isReferenced) {
                 $container->removeDefinition($id);
                 $compiler->addLogMessage($formatter->formatRemoveService($this, $id, 'unused'));
                 $hasChanged = true;
