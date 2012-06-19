@@ -38,12 +38,10 @@ class UniqueEntityValidator extends ConstraintValidator
     }
 
     /**
-     * @param object $entity
+     * @param object     $entity
      * @param Constraint $constraint
-     *
-     * @return bool
      */
-    public function isValid($entity, Constraint $constraint)
+    public function validate($entity, Constraint $constraint)
     {
         if (!is_array($constraint->fields) && !is_string($constraint->fields)) {
             throw new UnexpectedTypeException($constraint->fields, 'array');
@@ -74,10 +72,16 @@ class UniqueEntityValidator extends ConstraintValidator
             $criteria[$fieldName] = $class->reflFields[$fieldName]->getValue($entity);
 
             if (null === $criteria[$fieldName]) {
-                return true;
+                return;
             }
 
             if ($class->hasAssociation($fieldName)) {
+                /* Ensure the Proxy is initialized before using reflection to
+                 * read its identifiers. This is necessary because the wrapped
+                 * getter methods in the Proxy are being bypassed.
+                 */
+                $em->initializeObject($criteria[$fieldName]);
+
                 $relatedClass = $em->getClassMetadata($class->getAssociationTargetClass($fieldName));
                 $relatedId = $relatedClass->getIdentifierValues($criteria[$fieldName]);
 
@@ -94,19 +98,22 @@ class UniqueEntityValidator extends ConstraintValidator
         $repository = $em->getRepository($className);
         $result = $repository->findBy($criteria);
 
+        /* If the result is a MongoCursor, it must be advanced to the first
+         * element. Rewinding should have no ill effect if $result is another
+         * iterator implementation.
+         */
+        if ($result instanceof \Iterator) {
+            $result->rewind();
+        }
+
         /* If no entity matched the query criteria or a single entity matched,
          * which is the same as the entity being validated, the criteria is
          * unique.
          */
-        if (0 === count($result) || (1 === count($result) && $entity === $result[0])) {
-            return true;
+        if (0 === count($result) || (1 === count($result) && $entity === ($result instanceof \Iterator ? $result->current() : current($result)))) {
+            return;
         }
 
-        $oldPath = $this->context->getPropertyPath();
-        $this->context->setPropertyPath( empty($oldPath) ? $fields[0] : $oldPath.'.'.$fields[0]);
-        $this->context->addViolation($constraint->message, array(), $criteria[$fields[0]]);
-        $this->context->setPropertyPath($oldPath);
-
-        return true; // all true, we added the violation already!
+        $this->context->addViolationAtSubPath($fields[0], $constraint->message, array(), $criteria[$fields[0]]);
     }
 }

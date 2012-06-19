@@ -29,13 +29,12 @@ abstract class BaseNode implements NodeInterface
     protected $allowOverwrite;
     protected $required;
     protected $equivalentValues;
-    protected $info;
-    protected $example;
+    protected $attributes = array();
 
     /**
      * Constructor.
      *
-     * @param string $name The name of the node
+     * @param string        $name   The name of the node
      * @param NodeInterface $parent The parent of this node
      *
      * @throws \InvalidArgumentException if the name contains a period.
@@ -55,44 +54,74 @@ abstract class BaseNode implements NodeInterface
         $this->equivalentValues = array();
     }
 
-    /**
-     * Sets info message
-     *
-     * @param string $info The info text
-     */
-    public function setInfo($info)
+    public function setAttribute($key, $value)
     {
-        $this->info = $info;
+        $this->attributes[$key] = $value;
+    }
+
+    public function getAttribute($key, $default = null)
+    {
+        return isset($this->attributes[$key]) ? $this->attributes[$key] : $default;
+    }
+
+    public function hasAttribute($key)
+    {
+        return isset($this->attributes[$key]);
+    }
+
+    public function getAttributes()
+    {
+        return $this->attributes;
+    }
+
+    public function setAttributes(array $attributes)
+    {
+        $this->attributes = $attributes;
+    }
+
+    public function removeAttribute($key)
+    {
+        unset($this->attributes[$key]);
     }
 
     /**
-     * Returns info message
+     * Sets an info message.
+     *
+     * @param string $info
+     */
+    public function setInfo($info)
+    {
+        $this->setAttribute('info', $info);
+    }
+
+    /**
+     * Returns info message.
      *
      * @return string The info text
      */
     public function getInfo()
     {
-        return $this->info;
+        return $this->getAttribute('info');
     }
 
     /**
      * Sets the example configuration for this node.
      *
-     * @param array $example
+     * @param string|array $example
      */
     public function setExample($example)
     {
-        $this->example = $example;
+        $this->setAttribute('example', $example);
     }
 
     /**
      * Retrieves the example configuration for this node.
      *
-     * @return mixed The example
+     * @return string|array The example
      */
     public function getExample()
     {
-        return $this->example;
+        return $this->getAttribute('example');
     }
 
     /**

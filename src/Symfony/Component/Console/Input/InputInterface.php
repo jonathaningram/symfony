@@ -43,8 +43,8 @@ interface InputInterface
      * This method is to be used to introspect the input parameters
      * before they have been validated. It must be used carefully.
      *
-     * @param string|array $values The value(s) to look for in the raw parameters (can be an array)
-     * @param mixed $default The default value to return if no result is found
+     * @param string|array $values  The value(s) to look for in the raw parameters (can be an array)
+     * @param mixed        $default The default value to return if no result is found
      *
      * @return mixed The option value
      */
@@ -83,6 +83,25 @@ interface InputInterface
     function getArgument($name);
 
     /**
+     * Sets an argument value by name.
+     *
+     * @param string $name  The argument name
+     * @param string $value The argument value
+     *
+     * @throws \InvalidArgumentException When argument given doesn't exist
+     */
+    function setArgument($name, $value);
+
+    /**
+     * Returns true if an InputArgument object exists by name or position.
+     *
+     * @param string|integer $name The InputArgument name or position
+     *
+     * @return Boolean true if the InputArgument object exists, false otherwise
+     */
+    function hasArgument($name);
+
+    /**
      * Returns all the given options merged with the default values.
      *
      * @return array
@@ -99,9 +118,35 @@ interface InputInterface
     function getOption($name);
 
     /**
+     * Sets an option value by name.
+     *
+     * @param string $name  The option name
+     * @param string $value The option value
+     *
+     * @throws \InvalidArgumentException When option given doesn't exist
+     */
+    function setOption($name, $value);
+
+    /**
+     * Returns true if an InputOption object exists by name.
+     *
+     * @param string $name The InputOption name
+     *
+     * @return Boolean true if the InputOption object exists, false otherwise
+     */
+    function hasOption($name);
+
+    /**
      * Is this input means interactive?
      *
      * @return Boolean
      */
     function isInteractive();
+
+    /**
+     * Sets the input interactivity.
+     *
+     * @param Boolean $interactive If the input should be interactive
+     */
+    function setInteractive($interactive);
 }

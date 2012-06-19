@@ -22,6 +22,9 @@ use Symfony\Component\CssSelector\CssSelector;
  */
 class Crawler extends \SplObjectStorage
 {
+    /**
+     * @var string The current URI or the base href value
+     */
     private $uri;
 
     /**
@@ -75,8 +78,10 @@ class Crawler extends \SplObjectStorage
     /**
      * Adds HTML/XML content.
      *
-     * @param string $content A string to parse as HTML/XML
-     * @param string $type    The content type of the string
+     * @param string      $content A string to parse as HTML/XML
+     * @param null|string $type    The content type of the string
+     *
+     * @return null|void
      */
     public function addContent($content, $type = null)
     {
@@ -124,13 +129,17 @@ class Crawler extends \SplObjectStorage
         $dom = new \DOMDocument('1.0', $charset);
         $dom->validateOnParse = true;
 
+        if (function_exists('mb_convert_encoding')) {
+            $content = mb_convert_encoding($content, 'HTML-ENTITIES', $charset);
+        }
+
         $current = libxml_use_internal_errors(true);
         @$dom->loadHTML($content);
         libxml_use_internal_errors($current);
 
         $this->addDocument($dom);
 
-        $base = $this->filter('base')->extract(array('href'));
+        $base = $this->filterXPath('descendant-or-self::base')->extract(array('href'));
 
         if (count($base)) {
             $this->uri = current($base);
@@ -228,7 +237,7 @@ class Crawler extends \SplObjectStorage
      *
      * @param integer $position The position
      *
-     * @return A new instance of the Crawler with the selected node, or an empty Crawler if it does not exist.
+     * @return Crawler A new instance of the Crawler with the selected node, or an empty Crawler if it does not exist.
      *
      * @api
      */
@@ -538,7 +547,7 @@ class Crawler extends \SplObjectStorage
     /**
      * Selects links by name or alt value for clickable images.
      *
-     * @param  string $value The link text
+     * @param string $value The link text
      *
      * @return Crawler A new instance of Crawler with the filtered list of nodes
      *
@@ -555,7 +564,7 @@ class Crawler extends \SplObjectStorage
     /**
      * Selects a button by name or alt value for images.
      *
-     * @param  string $value The button text
+     * @param string $value The button text
      *
      * @return Crawler A new instance of Crawler with the filtered list of nodes
      *
@@ -573,7 +582,7 @@ class Crawler extends \SplObjectStorage
     /**
      * Returns a Link object for the first node in the list.
      *
-     * @param  string $method The method for the link (get by default)
+     * @param string $method The method for the link (get by default)
      *
      * @return Link   A Link instance
      *
@@ -612,8 +621,8 @@ class Crawler extends \SplObjectStorage
     /**
      * Returns a Form object for the first node in the list.
      *
-     * @param  array  $values An array of values for the form fields
-     * @param  string $method The method for the form
+     * @param array  $values An array of values for the form fields
+     * @param string $method The method for the form
      *
      * @return Form   A Form instance
      *
@@ -636,6 +645,28 @@ class Crawler extends \SplObjectStorage
         return $form;
     }
 
+    /**
+     * Converts string for XPath expressions.
+     *
+     * Escaped characters are: quotes (") and apostrophe (').
+     *
+     *  Examples:
+     *  <code>
+     *     echo Crawler::xpathLiteral('foo " bar');
+     *     //prints 'foo " bar'
+     *
+     *     echo Crawler::xpathLiteral("foo ' bar");
+     *     //prints "foo ' bar"
+     *
+     *     echo Crawler::xpathLiteral('a\'b"c');
+     *     //prints concat('a', "'", 'b"c')
+     *  </code>
+     *
+     * @param string $s String to be escaped
+     *
+     * @return string Converted string
+     *
+     */
     static public function xpathLiteral($s)
     {
         if (false === strpos($s, "'")) {

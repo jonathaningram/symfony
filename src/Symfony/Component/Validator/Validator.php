@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Mapping\ClassMetadataFactoryInterface;
  * against constraints.
  *
  * @author Fabien Potencier <fabien@symfony.com>
- * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  *
  * @api
  */
@@ -108,7 +108,7 @@ class Validator implements ValidatorInterface
             return $walker->walkConstraint($constraint, $value, $group, '');
         };
 
-        return $this->validateGraph($value, $walk, $groups);
+        return $this->validateGraph('', $walk, $groups);
     }
 
     protected function validateGraph($root, \Closure $walk, $groups = null)

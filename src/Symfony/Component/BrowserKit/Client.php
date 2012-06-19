@@ -15,9 +15,6 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Link;
 use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\Process\PhpProcess;
-use Symfony\Component\BrowserKit\Request;
-use Symfony\Component\BrowserKit\Response;
-use Symfony\Component\BrowserKit\Client;
 
 /**
  * Client simulates a browser.
@@ -84,7 +81,7 @@ abstract class Client
      */
     public function insulate($insulated = true)
     {
-        if (!class_exists('Symfony\\Component\\Process\\Process')) {
+        if ($insulated && !class_exists('Symfony\\Component\\Process\\Process')) {
             // @codeCoverageIgnoreStart
             throw new \RuntimeException('Unable to isolate requests as the Symfony Process Component is not installed.');
             // @codeCoverageIgnoreEnd
@@ -196,6 +193,8 @@ abstract class Client
      * Clicks on a given link.
      *
      * @param Link $link A Link instance
+     *
+     * @return Crawler
      *
      * @api
      */
@@ -350,14 +349,20 @@ abstract class Client
     /**
      * Creates a crawler.
      *
+     * This method returns null if the DomCrawler component is not available.
+     *
      * @param string $uri     A uri
      * @param string $content Content for the crawler to use
      * @param string $type    Content type
      *
-     * @return Crawler
+     * @return Crawler|null
      */
     protected function createCrawlerFromContent($uri, $content, $type)
     {
+        if (!class_exists('Symfony\Component\DomCrawler\Crawler')) {
+            return null;
+        }
+
         $crawler = new Crawler(null, $uri);
         $crawler->addContent($content, $type);
 
@@ -482,6 +487,6 @@ abstract class Client
      */
     protected function requestFromRequest(Request $request, $changeHistory = true)
     {
-        return $this->request($request->getMethod(), $request->getUri(), $request->getParameters(), array(), $request->getFiles(), $request->getServer(), $request->getContent(), $changeHistory);
+        return $this->request($request->getMethod(), $request->getUri(), $request->getParameters(), $request->getFiles(), $request->getServer(), $request->getContent(), $changeHistory);
     }
 }

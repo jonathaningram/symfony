@@ -16,6 +16,7 @@ use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\HttpKernel\Profiler\Profile;
 use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\HttpFoundation\RequestMatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -34,6 +35,7 @@ class ProfilerListener implements EventSubscriberInterface
     protected $exception;
     protected $children;
     protected $requests;
+    protected $profiles;
 
     /**
      * Constructor.
@@ -50,6 +52,7 @@ class ProfilerListener implements EventSubscriberInterface
         $this->onlyException = (Boolean) $onlyException;
         $this->onlyMasterRequests = (Boolean) $onlyMasterRequests;
         $this->children = new \SplObjectStorage();
+        $this->profiles = array();
     }
 
     /**
@@ -87,14 +90,25 @@ class ProfilerListener implements EventSubscriberInterface
             return;
         }
 
+        $request = $event->getRequest();
         $exception = $this->exception;
         $this->exception = null;
 
-        if (null !== $this->matcher && !$this->matcher->matches($event->getRequest())) {
+        if (null !== $this->matcher && !$this->matcher->matches($request)) {
             return;
         }
 
-        if (!$profile = $this->profiler->collect($event->getRequest(), $event->getResponse(), $exception)) {
+        if (!$profile = $this->profiler->collect($request, $event->getResponse(), $exception)) {
+            return;
+        }
+
+        $this->profiles[] = $profile;
+
+        if (null !== $exception) {
+            foreach ($this->profiles as $profile) {
+                $this->profiler->saveProfile($profile);
+            }
+
             return;
         }
 
@@ -102,28 +116,22 @@ class ProfilerListener implements EventSubscriberInterface
         if (!$master) {
             array_pop($this->requests);
 
-            $parent = $this->requests[count($this->requests) - 1];
-            if (!isset($this->children[$parent])) {
-                $profiles = array($profile);
-            } else {
-                $profiles = $this->children[$parent];
-                $profiles[] = $profile;
-            }
-
+            $parent = end($this->requests);
+            $profiles = isset($this->children[$parent]) ? $this->children[$parent] : array();
+            $profiles[] = $profile;
             $this->children[$parent] = $profiles;
         }
 
-        // store the profile and its children
-        if (isset($this->children[$event->getRequest()])) {
-            foreach ($this->children[$event->getRequest()] as $child) {
-                $child->setParent($profile);
+        if (isset($this->children[$request])) {
+            foreach ($this->children[$request] as $child) {
                 $profile->addChild($child);
-                $this->profiler->saveProfile($child);
             }
-            $this->children[$event->getRequest()] = array();
+            $this->children[$request] = array();
         }
 
-        $this->profiler->saveProfile($profile);
+        if ($master) {
+            $this->saveProfiles($profile);
+        }
     }
 
     static public function getSubscribedEvents()
@@ -132,9 +140,21 @@ class ProfilerListener implements EventSubscriberInterface
             // kernel.request must be registered as early as possible to not break
             // when an exception is thrown in any other kernel.request listener
             KernelEvents::REQUEST => array('onKernelRequest', 1024),
-
             KernelEvents::RESPONSE => array('onKernelResponse', -100),
             KernelEvents::EXCEPTION => 'onKernelException',
         );
+    }
+
+    /**
+     * Saves the profile hierarchy.
+     *
+     * @param Profile $profile The root profile
+     */
+    private function saveProfiles(Profile $profile)
+    {
+        $this->profiler->saveProfile($profile);
+        foreach ($profile->getChildren() as $profile) {
+            $this->saveProfiles($profile);
+        }
     }
 }

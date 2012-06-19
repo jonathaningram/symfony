@@ -18,10 +18,16 @@ namespace Symfony\Component\Form\Guess;
  * Thus an instance with confidence HIGH_CONFIDENCE is more likely to be
  * correct than an instance with confidence LOW_CONFIDENCE.
  *
- * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  */
 abstract class Guess
 {
+    /**
+     * Marks an instance with a value that is extremely likely to be correct
+     * @var integer
+     */
+    const VERY_HIGH_CONFIDENCE = 3;
+
     /**
      * Marks an instance with a value that is very likely to be correct
      * @var integer
@@ -45,6 +51,7 @@ abstract class Guess
      * @var array
      */
     private static $confidences = array(
+        self::VERY_HIGH_CONFIDENCE,
         self::HIGH_CONFIDENCE,
         self::MEDIUM_CONFIDENCE,
         self::LOW_CONFIDENCE,
@@ -53,7 +60,8 @@ abstract class Guess
     /**
      * The confidence about the correctness of the value
      *
-     * One of HIGH_CONFIDENCE, MEDIUM_CONFIDENCE and LOW_CONFIDENCE.
+     * One of VERY_HIGH_CONFIDENCE, HIGH_CONFIDENCE, MEDIUM_CONFIDENCE
+     * and LOW_CONFIDENCE.
      *
      * @var integer
      */
@@ -65,9 +73,9 @@ abstract class Guess
      * If there are multiple guesses with the same, highest confidence, the
      * returned guess is any of them.
      *
-     * @param  array $guesses     A list of guesses
+     * @param array $guesses A list of guesses
      *
-     * @return Guess  The guess with the highest confidence
+     * @return Guess The guess with the highest confidence
      */
     static public function getBestGuess(array $guesses)
     {
@@ -81,7 +89,7 @@ abstract class Guess
     /**
      * Constructor
      *
-     * @param integer $confidence   The confidence
+     * @param integer $confidence The confidence
      */
     public function __construct($confidence)
     {
@@ -95,8 +103,8 @@ abstract class Guess
     /**
      * Returns the confidence that the guessed value is correct
      *
-     * @return integer  One of the constants HIGH_CONFIDENCE, MEDIUM_CONFIDENCE
-     *                  and LOW_CONFIDENCE
+     * @return integer One of the constants VERY_HIGH_CONFIDENCE,
+     *                 HIGH_CONFIDENCE, MEDIUM_CONFIDENCE and LOW_CONFIDENCE
      */
     public function getConfidence()
     {

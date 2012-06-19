@@ -28,13 +28,17 @@ abstract class WebTestCase extends \PHPUnit_Framework_TestCase
     /**
      * Creates a Client.
      *
-     * @param array   $options An array of options to pass to the createKernel class
-     * @param array   $server  An array of server parameters
+     * @param array $options An array of options to pass to the createKernel class
+     * @param array $server  An array of server parameters
      *
      * @return Client A Client instance
      */
     static protected function createClient(array $options = array(), array $server = array())
     {
+        if (null !== static::$kernel) {
+            static::$kernel->shutdown();
+        }
+
         static::$kernel = static::createKernel($options);
         static::$kernel->boot();
 

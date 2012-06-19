@@ -48,10 +48,9 @@ class DoctrineOrmTypeGuesser implements FormTypeGuesserInterface
             return new TypeGuess('entity', array('em' => $name, 'class' => $mapping['targetEntity'], 'multiple' => $multiple), Guess::HIGH_CONFIDENCE);
         }
 
-        switch ($metadata->getTypeOfField($property))
-        {
-            //case 'array':
-            //  return new TypeGuess('Collection', array(), Guess::HIGH_CONFIDENCE);
+        switch ($metadata->getTypeOfField($property)) {
+            case 'array':
+                return new TypeGuess('collection', array(), Guess::MEDIUM_CONFIDENCE);
             case 'boolean':
                 return new TypeGuess('checkbox', array(), Guess::HIGH_CONFIDENCE);
             case 'datetime':
@@ -60,6 +59,8 @@ class DoctrineOrmTypeGuesser implements FormTypeGuesserInterface
                 return new TypeGuess('datetime', array(), Guess::HIGH_CONFIDENCE);
             case 'date':
                 return new TypeGuess('date', array(), Guess::HIGH_CONFIDENCE);
+            case 'time':
+                return new TypeGuess('time', array(), Guess::HIGH_CONFIDENCE);
             case 'decimal':
             case 'float':
                 return new TypeGuess('number', array(), Guess::MEDIUM_CONFIDENCE);
@@ -71,8 +72,6 @@ class DoctrineOrmTypeGuesser implements FormTypeGuesserInterface
                 return new TypeGuess('text', array(), Guess::MEDIUM_CONFIDENCE);
             case 'text':
                 return new TypeGuess('textarea', array(), Guess::MEDIUM_CONFIDENCE);
-            case 'time':
-                return new TypeGuess('time', array(), Guess::HIGH_CONFIDENCE);
             default:
                 return new TypeGuess('text', array(), Guess::LOW_CONFIDENCE);
         }
@@ -105,6 +104,10 @@ class DoctrineOrmTypeGuesser implements FormTypeGuesserInterface
             if (isset($mapping['length'])) {
                 return new ValueGuess($mapping['length'], Guess::HIGH_CONFIDENCE);
             }
+
+            if (in_array($ret[0]->getTypeOfField($property), array('decimal', 'float'))) {
+                return new ValueGuess(null, Guess::MEDIUM_CONFIDENCE);
+            }
         }
     }
 
@@ -113,6 +116,21 @@ class DoctrineOrmTypeGuesser implements FormTypeGuesserInterface
      */
     public function guessMinLength($class, $property)
     {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function guessPattern($class, $property)
+    {
+        $ret = $this->getMetadata($class);
+        if ($ret && $ret[0]->hasField($property) && !$ret[0]->hasAssociation($property)) {
+            $mapping = $ret[0]->getFieldMapping($property);
+
+            if (in_array($ret[0]->getTypeOfField($property), array('decimal', 'float'))) {
+                return new ValueGuess(null, Guess::MEDIUM_CONFIDENCE);
+            }
+        }
     }
 
     protected function getMetadata($class)

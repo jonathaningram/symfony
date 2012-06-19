@@ -23,16 +23,17 @@ class OutputFormatter implements OutputFormatterInterface
     /**
      * The pattern to phrase the format.
      */
-    const FORMAT_PATTERN = '#<([a-z][a-z0-9_=;-]+)>(.*?)</\\1?>#is';
+    const FORMAT_PATTERN = '#<(/?)([a-z][a-z0-9_=;-]+)?>([^<]*)#is';
 
     private $decorated;
     private $styles = array();
+    private $styleStack;
 
     /**
      * Initializes console output formatter.
      *
-     * @param   Boolean $decorated  Whether this formatter should actually decorate strings
-     * @param   array   $styles     Array of "name => FormatterStyle" instances
+     * @param Boolean $decorated Whether this formatter should actually decorate strings
+     * @param array   $styles    Array of "name => FormatterStyle" instances
      *
      * @api
      */
@@ -40,14 +41,16 @@ class OutputFormatter implements OutputFormatterInterface
     {
         $this->decorated = (Boolean) $decorated;
 
-        $this->setStyle('error',    new OutputFormatterStyle('white', 'red'));
-        $this->setStyle('info',     new OutputFormatterStyle('green'));
-        $this->setStyle('comment',  new OutputFormatterStyle('yellow'));
+        $this->setStyle('error', new OutputFormatterStyle('white', 'red'));
+        $this->setStyle('info', new OutputFormatterStyle('green'));
+        $this->setStyle('comment', new OutputFormatterStyle('yellow'));
         $this->setStyle('question', new OutputFormatterStyle('black', 'cyan'));
 
         foreach ($styles as $name => $style) {
             $this->setStyle($name, $style);
         }
+
+        $this->styleStack = new OutputFormatterStyleStack();
     }
 
     /**
@@ -90,9 +93,9 @@ class OutputFormatter implements OutputFormatterInterface
     /**
      * Checks if output formatter has style with specified name.
      *
-     * @param   string  $name
+     * @param string $name
      *
-     * @return  Boolean
+     * @return Boolean
      *
      * @api
      */
@@ -104,11 +107,11 @@ class OutputFormatter implements OutputFormatterInterface
     /**
      * Gets style options from style with specified name.
      *
-     * @param   string  $name
+     * @param string $name
      *
-     * @return  OutputFormatterStyleInterface
+     * @return OutputFormatterStyleInterface
      *
-     * @throws  \InvalidArgumentException When style isn't defined
+     * @throws \InvalidArgumentException When style isn't defined
      *
      * @api
      */
@@ -124,7 +127,7 @@ class OutputFormatter implements OutputFormatterInterface
     /**
      * Formats a message according to the given styles.
      *
-     * @param  string $message The message to style
+     * @param string $message The message to style
      *
      * @return string The styled message
      *
@@ -136,6 +139,14 @@ class OutputFormatter implements OutputFormatterInterface
     }
 
     /**
+     * @return OutputFormatterStyleStack
+     */
+    public function getStyleStack()
+    {
+        return $this->styleStack;
+    }
+
+    /**
      * Replaces style of the output.
      *
      * @param array $match
@@ -144,29 +155,43 @@ class OutputFormatter implements OutputFormatterInterface
      */
     private function replaceStyle($match)
     {
-        if (!$this->isDecorated()) {
-            return $match[2];
+        if ('' === $match[2]) {
+            if ('/' === $match[1]) {
+                // we got "</>" tag
+                $this->styleStack->pop();
+
+                return $this->applyStyle($this->styleStack->getCurrent(), $match[3]);
+            }
+
+            // we got "<>" tag
+            return '<>'.$match[3];
         }
 
-        if (isset($this->styles[strtolower($match[1])])) {
-            $style = $this->styles[strtolower($match[1])];
+        if (isset($this->styles[strtolower($match[2])])) {
+            $style = $this->styles[strtolower($match[2])];
         } else {
-            $style = $this->createStyleFromString($match[1]);
+            $style = $this->createStyleFromString($match[2]);
 
             if (false === $style) {
                 return $match[0];
             }
         }
 
-        return $style->apply($this->format($match[2]));
+        if ('/' === $match[1]) {
+            $this->styleStack->pop($style);
+        } else {
+            $this->styleStack->push($style);
+        }
+
+        return $this->applyStyle($this->styleStack->getCurrent(), $match[3]);
     }
 
     /**
      * Tries to create new style instance from string.
      *
-     * @param   string  $string
+     * @param string $string
      *
-     * @return  Symfony\Component\Console\Format\FormatterStyle|Boolean false if string is not format string
+     * @return OutputFormatterStyle|Boolean false if string is not format string
      */
     private function createStyleFromString($string)
     {
@@ -188,5 +213,18 @@ class OutputFormatter implements OutputFormatterInterface
         }
 
         return $style;
+    }
+
+    /**
+     * Applies style to text if must be applied.
+     *
+     * @param OutputFormatterStyleInterface $style Style to apply
+     * @param string                        $text  Input text
+     *
+     * @return string string Styled text
+     */
+    private function applyStyle(OutputFormatterStyleInterface $style, $text)
+    {
+        return $this->isDecorated() && strlen($text) > 0 ? $style->apply($text) : $text;
     }
 }

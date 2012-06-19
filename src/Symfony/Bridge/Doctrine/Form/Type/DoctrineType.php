@@ -13,12 +13,14 @@ namespace Symfony\Bridge\Doctrine\Form\Type;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\Common\Persistence\ObjectManager;
-use Symfony\Component\Form\FormBuilder;
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Bridge\Doctrine\Form\ChoiceList\EntityChoiceList;
 use Symfony\Bridge\Doctrine\Form\ChoiceList\EntityLoaderInterface;
-use Symfony\Bridge\Doctrine\Form\EventListener\MergeCollectionListener;
+use Symfony\Bridge\Doctrine\Form\EventListener\MergeDoctrineCollectionListener;
 use Symfony\Bridge\Doctrine\Form\DataTransformer\CollectionToArrayTransformer;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\OptionsResolver\Options;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 abstract class DoctrineType extends AbstractType
 {
@@ -32,38 +34,35 @@ abstract class DoctrineType extends AbstractType
         $this->registry = $registry;
     }
 
-    public function buildForm(FormBuilder $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options)
     {
         if ($options['multiple']) {
             $builder
-                ->addEventSubscriber(new MergeCollectionListener())
-                ->prependClientTransformer(new CollectionToArrayTransformer())
+                ->addEventSubscriber(new MergeDoctrineCollectionListener())
+                ->addViewTransformer(new CollectionToArrayTransformer(), true)
             ;
         }
     }
 
-    public function getDefaultOptions(array $options)
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        $defaultOptions = array(
-            'em'                => null,
-            'class'             => null,
-            'property'          => null,
-            'query_builder'     => null,
-            'loader'            => null,
-            'choices'           => null,
-            'group_by'          => null,
-        );
+        $registry = $this->registry;
+        $type = $this;
 
-        $options = array_replace($defaultOptions, $options);
+        $loader = function (Options $options) use ($type, $registry) {
+            if (null !== $options['query_builder']) {
+                $manager = $registry->getManager($options['em']);
 
-        if (!isset($options['choice_list'])) {
-            $manager = $this->registry->getManager($options['em']);
-
-            if (isset($options['query_builder'])) {
-                $options['loader'] = $this->getLoader($manager, $options);
+                return $type->getLoader($manager, $options['query_builder'], $options['class']);
             }
 
-            $defaultOptions['choice_list'] = new EntityChoiceList(
+            return null;
+        };
+
+        $choiceList = function (Options $options) use ($registry) {
+            $manager = $registry->getManager($options['em']);
+
+            return new EntityChoiceList(
                 $manager,
                 $options['class'],
                 $options['property'],
@@ -71,21 +70,31 @@ abstract class DoctrineType extends AbstractType
                 $options['choices'],
                 $options['group_by']
             );
-        }
+        };
 
-        return $defaultOptions;
+        $resolver->setDefaults(array(
+            'em'                => null,
+            'class'             => null,
+            'property'          => null,
+            'query_builder'     => null,
+            'loader'            => $loader,
+            'choices'           => null,
+            'choice_list'       => $choiceList,
+            'group_by'          => null,
+        ));
     }
 
     /**
      * Return the default loader object.
      *
      * @param ObjectManager $manager
-     * @param array $options
+     * @param mixed         $queryBuilder
+     * @param string        $class
      * @return EntityLoaderInterface
      */
-    abstract protected function getLoader(ObjectManager $manager, array $options);
+    abstract public function getLoader(ObjectManager $manager, $queryBuilder, $class);
 
-    public function getParent(array $options)
+    public function getParent()
     {
         return 'choice';
     }

@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Mapping\ClassMetadata;
 /**
  * Persists ClassMetadata instances in a cache
  *
- * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  */
 interface CacheInterface
 {
@@ -32,7 +32,7 @@ interface CacheInterface
      *
      * @param string $class Class Name
      *
-     * @return ClassMetadata
+     * @return ClassMetadata|false A ClassMetadata instance or false on miss
      */
     function read($class);
 

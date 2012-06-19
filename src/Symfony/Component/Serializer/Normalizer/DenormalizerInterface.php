@@ -1,15 +1,15 @@
 <?php
 
-namespace Symfony\Component\Serializer\Normalizer;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien@symfony.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\Serializer\Normalizer;
 
 /**
  * Defines the interface of denormalizers.
@@ -21,8 +21,8 @@ interface DenormalizerInterface
     /**
      * Denormalizes data back into an object of the given class
      *
-     * @param mixed $data data to restore
-     * @param string $class the expected class to instantiate
+     * @param mixed  $data   data to restore
+     * @param string $class  the expected class to instantiate
      * @param string $format format the given data was extracted from
      * @return object
      */
@@ -31,9 +31,9 @@ interface DenormalizerInterface
     /**
      * Checks whether the given class is supported for denormalization by this normalizer
      *
-     * @param mixed   $data   Data to denormalize from.
-     * @param string  $type   The class to which the data should be denormalized.
-     * @param string  $format The format being deserialized from.
+     * @param mixed  $data   Data to denormalize from.
+     * @param string $type   The class to which the data should be denormalized.
+     * @param string $format The format being deserialized from.
      * @return Boolean
      */
     function supportsDenormalization($data, $type, $format = null);

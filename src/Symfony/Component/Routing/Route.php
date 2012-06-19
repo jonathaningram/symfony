@@ -35,10 +35,10 @@ class Route
      *
      *  * compiler_class: A class name able to compile this route instance (RouteCompiler by default)
      *
-     * @param string $pattern       The pattern to match
-     * @param array  $defaults      An array of default parameter values
-     * @param array  $requirements  An array of requirements for parameters (regexes)
-     * @param array  $options       An array of options
+     * @param string $pattern      The pattern to match
+     * @param array  $defaults     An array of default parameter values
+     * @param array  $requirements An array of requirements for parameters (regexes)
+     * @param array  $options      An array of options
      *
      * @api
      */
@@ -79,9 +79,11 @@ class Route
         $this->pattern = trim($pattern);
 
         // a route must start with a slash
-        if (empty($this->pattern) || '/' !== $this->pattern[0]) {
+        if ('' === $this->pattern || '/' !== $this->pattern[0]) {
             $this->pattern = '/'.$this->pattern;
         }
+
+        $this->compiled = null;
 
         return $this;
     }
@@ -107,9 +109,28 @@ class Route
      */
     public function setOptions(array $options)
     {
-        $this->options = array_merge(array(
+        $this->options = array(
             'compiler_class' => 'Symfony\\Component\\Routing\\RouteCompiler',
-        ), $options);
+        );
+
+        return $this->addOptions($options);
+    }
+
+    /**
+     * Adds options.
+     *
+     * This method implements a fluent interface.
+     *
+     * @param array $options The options
+     *
+     * @return Route The current Route instance
+     */
+    public function addOptions(array $options)
+    {
+        foreach ($options as $name => $option) {
+            $this->options[(string) $name] = $option;
+        }
+        $this->compiled = null;
 
         return $this;
     }
@@ -129,6 +150,7 @@ class Route
     public function setOption($name, $value)
     {
         $this->options[$name] = $value;
+        $this->compiled = null;
 
         return $this;
     }
@@ -185,6 +207,7 @@ class Route
         foreach ($defaults as $name => $default) {
             $this->defaults[(string) $name] = $default;
         }
+        $this->compiled = null;
 
         return $this;
     }
@@ -226,6 +249,7 @@ class Route
     public function setDefault($name, $default)
     {
         $this->defaults[(string) $name] = $default;
+        $this->compiled = null;
 
         return $this;
     }
@@ -270,6 +294,7 @@ class Route
         foreach ($requirements as $key => $regex) {
             $this->requirements[$key] = $this->sanitizeRequirement($key, $regex);
         }
+        $this->compiled = null;
 
         return $this;
     }
@@ -289,7 +314,7 @@ class Route
     /**
      * Sets a requirement for the given key.
      *
-     * @param string $key The key
+     * @param string $key   The key
      * @param string $regex The regex
      *
      * @return Route The current Route instance
@@ -299,6 +324,7 @@ class Route
     public function setRequirement($key, $regex)
     {
         $this->requirements[$key] = $this->sanitizeRequirement($key, $regex);
+        $this->compiled = null;
 
         return $this;
     }
@@ -325,15 +351,19 @@ class Route
 
     private function sanitizeRequirement($key, $regex)
     {
-        if (is_array($regex)) {
-            throw new \InvalidArgumentException(sprintf('Routing requirements must be a string, array given for "%s"', $key));
+        if (!is_string($regex)) {
+            throw new \InvalidArgumentException(sprintf('Routing requirement for "%s" must be a string', $key));
         }
 
-        if ('^' == $regex[0]) {
+        if ('' === $regex) {
+            throw new \InvalidArgumentException(sprintf('Routing requirement for "%s" cannot be empty', $key));
+        }
+
+        if ('^' === $regex[0]) {
             $regex = substr($regex, 1);
         }
 
-        if ('$' == substr($regex, -1)) {
+        if ('$' === substr($regex, -1)) {
             $regex = substr($regex, 0, -1);
         }
 

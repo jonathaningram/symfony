@@ -43,8 +43,6 @@ class TraceableUrlMatcher extends UrlMatcher
 
     protected function matchCollection($pathinfo, RouteCollection $routes)
     {
-        $pathinfo = urldecode($pathinfo);
-
         foreach ($routes as $name => $route) {
             if ($route instanceof RouteCollection) {
                 if (!$ret = $this->matchCollection($pathinfo, $route)) {
@@ -73,7 +71,7 @@ class TraceableUrlMatcher extends UrlMatcher
                     if (in_array($n, $cr->getVariables()) && !preg_match($cr->getRegex(), $pathinfo)) {
                         $this->addTrace(sprintf('Requirement for "%s" does not match (%s)', $n, $regex), self::ROUTE_ALMOST_MATCHES, $name, $route);
 
-                        continue;
+                        continue 2;
                     }
                 }
 

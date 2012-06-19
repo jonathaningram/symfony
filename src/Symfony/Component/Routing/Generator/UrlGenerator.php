@@ -17,9 +17,10 @@ use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
+use Symfony\Component\HttpKernel\Log\LoggerInterface;
 
 /**
- * UrlGenerator generates URL based on a set of routes.
+ * UrlGenerator generates a URL based on a set of routes.
  *
  * @author Fabien Potencier <fabien@symfony.com>
  *
@@ -28,35 +29,33 @@ use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 class UrlGenerator implements UrlGeneratorInterface
 {
     protected $context;
+    protected $strictParameters = true;
+    protected $logger;
     protected $decodedChars = array(
-        // %2F is not valid in a URL, so we don't encode it (which is fine as the requirements explicitely allowed it)
+        // %2F is not valid in a URL, so we don't encode it (which is fine as the requirements explicitly allowed it)
         '%2F' => '/',
     );
 
     protected $routes;
-    protected $cache;
 
     /**
      * Constructor.
      *
      * @param RouteCollection $routes  A RouteCollection instance
      * @param RequestContext  $context The context
+     * @param LoggerInterface $logger  A logger instance
      *
      * @api
      */
-    public function __construct(RouteCollection $routes, RequestContext $context)
+    public function __construct(RouteCollection $routes, RequestContext $context, LoggerInterface $logger = null)
     {
         $this->routes = $routes;
         $this->context = $context;
-        $this->cache = array();
+        $this->logger = $logger;
     }
 
     /**
-     * Sets the request context.
-     *
-     * @param RequestContext $context The context
-     *
-     * @api
+     * {@inheritdoc}
      */
     public function setContext(RequestContext $context)
     {
@@ -64,9 +63,7 @@ class UrlGenerator implements UrlGeneratorInterface
     }
 
     /**
-     * Gets the request context.
-     *
-     * @return RequestContext The context
+     * {@inheritdoc}
      */
     public function getContext()
     {
@@ -74,9 +71,27 @@ class UrlGenerator implements UrlGeneratorInterface
     }
 
     /**
-     * {@inheritDoc}
+     * Enables or disables the exception on incorrect parameters.
      *
-     * @api
+     * @param Boolean $enabled
+     */
+    public function setStrictParameters($enabled)
+    {
+        $this->strictParameters = $enabled;
+    }
+
+    /**
+     * Gets the strict check of incorrect parameters.
+     *
+     * @return Boolean
+     */
+    public function getStrictParameters()
+    {
+        return $this->strictParameters;
+    }
+
+    /**
+     * {@inheritDoc}
      */
     public function generate($name, $parameters = array(), $absolute = false)
     {
@@ -84,11 +99,10 @@ class UrlGenerator implements UrlGeneratorInterface
             throw new RouteNotFoundException(sprintf('Route "%s" does not exist.', $name));
         }
 
-        if (!isset($this->cache[$name])) {
-            $this->cache[$name] = $route->compile();
-        }
+        // the Route has a cache of its own and is not recompiled as long as it does not get modified
+        $compiledRoute = $route->compile();
 
-        return $this->doGenerate($this->cache[$name]->getVariables(), $route->getDefaults(), $route->getRequirements(), $this->cache[$name]->getTokens(), $parameters, $name, $absolute);
+        return $this->doGenerate($compiledRoute->getVariables(), $route->getDefaults(), $route->getRequirements(), $compiledRoute->getTokens(), $parameters, $name, $absolute);
     }
 
     /**
@@ -116,7 +130,16 @@ class UrlGenerator implements UrlGeneratorInterface
                     if (!$isEmpty = in_array($tparams[$token[3]], array(null, '', false), true)) {
                         // check requirement
                         if ($tparams[$token[3]] && !preg_match('#^'.$token[2].'$#', $tparams[$token[3]])) {
-                            throw new InvalidParameterException(sprintf('Parameter "%s" for route "%s" must match "%s" ("%s" given).', $token[3], $name, $token[2], $tparams[$token[3]]));
+                            $message = sprintf('Parameter "%s" for route "%s" must match "%s" ("%s" given).', $token[3], $name, $token[2], $tparams[$token[3]]);
+                            if ($this->strictParameters) {
+                                throw new InvalidParameterException($message);
+                            }
+
+                            if ($this->logger) {
+                                $this->logger->err($message);
+                            }
+
+                            return null;
                         }
                     }
 
@@ -138,7 +161,7 @@ class UrlGenerator implements UrlGeneratorInterface
 
         // add a query string if needed
         $extra = array_diff_key($originParameters, $variables, $defaults);
-        if ($extra && $query = http_build_query($extra)) {
+        if ($extra && $query = http_build_query($extra, '', '&')) {
             $url .= '?'.$query;
         }
 

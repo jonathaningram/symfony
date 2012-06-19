@@ -47,8 +47,8 @@ class Filesystem
     /**
      * Creates a directory recursively.
      *
-     * @param  string|array|\Traversable $dirs The directory path
-     * @param  int                       $mode The directory mode
+     * @param string|array|\Traversable $dirs The directory path
+     * @param int                       $mode The directory mode
      *
      * @return Boolean true if the directory has been created, false otherwise
      */
@@ -67,9 +67,27 @@ class Filesystem
     }
 
     /**
+     * Checks the existence of files or directories.
+     *
+     * @param string|array|\Traversable $files A filename, an array of files, or a \Traversable instance to check
+     *
+     * @return Boolean true if the file exists, false otherwise
+     */
+    public function exists($files)
+    {
+        foreach ($this->toIterator($files) as $file) {
+            if (!file_exists($file)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Creates empty files.
      *
-     * @param string|array|\Traversable $files A filename, an array of files, or a \Traversable instance to remove
+     * @param string|array|\Traversable $files A filename, an array of files, or a \Traversable instance to create
      */
     public function touch($files)
     {
@@ -88,7 +106,7 @@ class Filesystem
         $files = iterator_to_array($this->toIterator($files));
         $files = array_reverse($files);
         foreach ($files as $file) {
-            if (!file_exists($file)) {
+            if (!file_exists($file) && !is_link($file)) {
                 continue;
             }
 
@@ -97,7 +115,12 @@ class Filesystem
 
                 rmdir($file);
             } else {
-                unlink($file);
+                // https://bugs.php.net/bug.php?id=52176
+                if (defined('PHP_WINDOWS_VERSION_MAJOR') && is_dir($file)) {
+                    rmdir($file);
+                } else {
+                    unlink($file);
+                }
             }
         }
     }
@@ -105,29 +128,25 @@ class Filesystem
     /**
      * Change mode for an array of files or directories.
      *
-     * @param string|array|\Traversable $files A filename, an array of files, or a \Traversable instance to remove
-     * @param integer                   $mode  The new mode
+     * @param string|array|\Traversable $files A filename, an array of files, or a \Traversable instance to change mode
+     * @param integer                   $mode  The new mode (octal)
      * @param integer                   $umask The mode mask (octal)
      */
     public function chmod($files, $mode, $umask = 0000)
     {
-        $currentUmask = umask();
-        umask($umask);
-
         foreach ($this->toIterator($files) as $file) {
-            chmod($file, $mode);
+            @chmod($file, $mode & ~$umask);
         }
-
-        umask($currentUmask);
     }
 
     /**
      * Renames a file.
      *
-     * @param string $origin  The origin filename
-     * @param string $target  The new filename
+     * @param string $origin The origin filename
+     * @param string $target The new filename
      *
      * @throws \RuntimeException When target file already exists
+     * @throws \RuntimeException When origin cannot be renamed
      */
     public function rename($origin, $target)
     {
@@ -136,7 +155,9 @@ class Filesystem
             throw new \RuntimeException(sprintf('Cannot rename because the target "%s" already exist.', $target));
         }
 
-        rename($origin, $target);
+        if (false === @rename($origin, $target)) {
+            throw new \RuntimeException(sprintf('Cannot rename "%s" to "%s".', $origin, $target));
+        }
     }
 
     /**
@@ -153,6 +174,8 @@ class Filesystem
 
             return;
         }
+
+        $this->mkdir(dirname($targetDir));
 
         $ok = false;
         if (is_link($targetDir)) {
@@ -171,21 +194,28 @@ class Filesystem
     /**
      * Given an existing path, convert it to a path relative to a given starting path
      *
-     * @var string Absolute path of target
-     * @var string Absolute path where traversal begins
+     * @param string $endPath   Absolute path of target
+     * @param string $startPath Absolute path where traversal begins
      *
      * @return string Path of target relative to starting path
      */
     public function makePathRelative($endPath, $startPath)
     {
+        // Normalize separators on windows
+        if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            $endPath = strtr($endPath, '\\', '/');
+            $startPath = strtr($startPath, '\\', '/');
+        }
+
         // Find for which character the the common path stops
         $offset = 0;
-        while ($startPath[$offset] === $endPath[$offset]) {
+        while (isset($startPath[$offset]) && isset($endPath[$offset]) && $startPath[$offset] === $endPath[$offset]) {
             $offset++;
         }
 
         // Determine how deep the start path is relative to the common path (ie, "web/bundles" = 2 levels)
-        $depth = substr_count(substr($startPath, $offset), DIRECTORY_SEPARATOR) + 1;
+        $diffPath = trim(substr($startPath, $offset), '/');
+        $depth = strlen($diffPath) > 0 ? substr_count($diffPath, '/') + 1 : 0;
 
         // Repeated "../" for each level need to reach the common path
         $traverser = str_repeat('../', $depth);
@@ -197,10 +227,10 @@ class Filesystem
     /**
      * Mirrors a directory to another.
      *
-     * @param string $originDir      The origin directory
-     * @param string $targetDir      The target directory
-     * @param \Traversable $iterator A Traversable instance
-     * @param array  $options        An array of boolean options
+     * @param string       $originDir The origin directory
+     * @param string       $targetDir The target directory
+     * @param \Traversable $iterator  A Traversable instance
+     * @param array        $options   An array of boolean options
      *                               Valid options are:
      *                                 - $options['override'] Whether to override an existing file on copy or not (see copy())
      *                                 - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see symlink())
@@ -219,21 +249,16 @@ class Filesystem
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($originDir, $flags), \RecursiveIteratorIterator::SELF_FIRST);
         }
 
-        if ('/' === substr($targetDir, -1) || '\\' === substr($targetDir, -1)) {
-            $targetDir = substr($targetDir, 0, -1);
-        }
-
-        if ('/' === substr($originDir, -1) || '\\' === substr($originDir, -1)) {
-            $originDir = substr($originDir, 0, -1);
-        }
+        $targetDir = rtrim($targetDir, '/\\');
+        $originDir = rtrim($originDir, '/\\');
 
         foreach ($iterator as $file) {
-            $target = $targetDir.'/'.str_replace($originDir.DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $target = str_replace($originDir, $targetDir, $file->getPathname());
 
-            if (is_link($file)) {
-                $this->symlink($file, $target);
-            } elseif (is_dir($file)) {
+            if (is_dir($file)) {
                 $this->mkdir($target);
+            } elseif (!$copyOnWindows && is_link($file)) {
+                $this->symlink($file, $target);
             } elseif (is_file($file) || ($copyOnWindows && is_link($file))) {
                 $this->copy($file, $target, isset($options['override']) ? $options['override'] : false);
             } else {
@@ -251,10 +276,10 @@ class Filesystem
      */
     public function isAbsolutePath($file)
     {
-        if ($file[0] == '/' || $file[0] == '\\'
+        if (strspn($file, '/\\', 0, 1)
             || (strlen($file) > 3 && ctype_alpha($file[0])
-                && $file[1] == ':'
-                && ($file[2] == '\\' || $file[2] == '/')
+                && substr($file, 1, 1) === ':'
+                && (strspn($file, '/\\', 2, 1))
             )
             || null !== parse_url($file, PHP_URL_SCHEME)
         ) {
@@ -264,6 +289,11 @@ class Filesystem
         return false;
     }
 
+    /**
+     * @param mixed $files
+     *
+     * @return \Traversable
+     */
     private function toIterator($files)
     {
         if (!$files instanceof \Traversable) {

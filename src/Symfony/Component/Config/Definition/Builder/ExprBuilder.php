@@ -35,7 +35,9 @@ class ExprBuilder
     }
 
     /**
-     * Mark the expression as being always used.
+     * Marks the expression as being always used.
+     *
+     * @param \Closure $then
      *
      * @return ExprBuilder
      */

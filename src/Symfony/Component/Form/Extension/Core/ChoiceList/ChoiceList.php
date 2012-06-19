@@ -11,7 +11,7 @@
 
 namespace Symfony\Component\Form\Extension\Core\ChoiceList;
 
-use Symfony\Component\Form\Form;
+use Symfony\Component\Form\FormConfig;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
 use Symfony\Component\Form\Exception\InvalidConfigurationException;
 use Symfony\Component\Form\Extension\Core\View\ChoiceView;
@@ -28,33 +28,10 @@ use Symfony\Component\Form\Extension\Core\View\ChoiceView;
  * $choiceList = new ChoiceList($choices, $labels);
  * </code>
  *
- * @author Bernhard Schussek <bschussek@gmail.<com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  */
 class ChoiceList implements ChoiceListInterface
 {
-    /**
-     * Strategy creating new indices/values by creating a copy of the choice.
-     *
-     * This strategy can only be used for index creation if choices are
-     * guaranteed to only contain ASCII letters, digits and underscores.
-     *
-     * It can be used for value creation if choices can safely be cast into
-     * a (unique) string.
-     *
-     * @var integer
-     */
-    const COPY_CHOICE = 0;
-
-    /**
-     * Strategy creating new indices/values by generating a new integer.
-     *
-     * This strategy can always be applied, but leads to loss of information
-     * in the HTML source code.
-     *
-     * @var integer
-     */
-    const GENERATE = 1;
-
     /**
      * The choices with their indices as keys.
      *
@@ -86,45 +63,20 @@ class ChoiceList implements ChoiceListInterface
     private $remainingViews = array();
 
     /**
-     * The strategy used for creating choice indices.
-     *
-     * @var integer
-     * @see COPY_CHOICE
-     * @see GENERATE
-     */
-    private $indexStrategy;
-
-    /**
-     * The strategy used for creating choice values.
-     *
-     * @var integer
-     * @see COPY_CHOICE
-     * @see GENERATE
-     */
-    private $valueStrategy;
-
-    /**
      * Creates a new choice list.
      *
-     * @param array|\Traversable $choices          The array of choices. Choices may also be given
+     * @param array|\Traversable $choices The array of choices. Choices may also be given
      *                                             as hierarchy of unlimited depth. Hierarchies are
      *                                             created by creating nested arrays. The title of
      *                                             the sub-hierarchy can be stored in the array
      *                                             key pointing to the nested array.
-     * @param array              $labels           The array of labels. The structure of this array
+     * @param array $labels The array of labels. The structure of this array
      *                                             should match the structure of $choices.
-     * @param array              $preferredChoices A flat array of choices that should be
+     * @param array $preferredChoices A flat array of choices that should be
      *                                             presented to the user with priority.
-     * @param integer            $valueStrategy    The strategy used to create choice values.
-     *                                             One of COPY_CHOICE and GENERATE.
-     * @param integer            $indexStrategy    The strategy used to create choice indices.
-     *                                             One of COPY_CHOICE and GENERATE.
      */
-    public function __construct($choices, array $labels, array $preferredChoices = array(), $valueStrategy = self::GENERATE, $indexStrategy = self::GENERATE)
+    public function __construct($choices, array $labels, array $preferredChoices = array())
     {
-        $this->valueStrategy = $valueStrategy;
-        $this->indexStrategy = $indexStrategy;
-
         $this->initialize($choices, $labels, $preferredChoices);
     }
 
@@ -133,9 +85,9 @@ class ChoiceList implements ChoiceListInterface
      *
      * Safe to be called multiple times. The list is cleared on every call.
      *
-     * @param array|\Traversable $choices The choices to write into the list.
-     * @param array $labels The labels belonging to the choices.
-     * @param array $preferredChoices The choices to display with priority.
+     * @param array|\Traversable $choices          The choices to write into the list.
+     * @param array              $labels           The labels belonging to the choices.
+     * @param array              $preferredChoices The choices to display with priority.
      */
     protected function initialize($choices, array $labels, array $preferredChoices)
     {
@@ -191,17 +143,10 @@ class ChoiceList implements ChoiceListInterface
     public function getChoicesForValues(array $values)
     {
         $values = $this->fixValues($values);
-
-        // If the values are identical to the choices, we can just return them
-        // to improve performance a little bit
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $this->fixChoices(array_intersect($values, $this->values));
-        }
-
         $choices = array();
 
-        foreach ($this->values as $i => $value) {
-            foreach ($values as $j => $givenValue) {
+        foreach ($values as $j => $givenValue) {
+            foreach ($this->values as $i => $value) {
                 if ($value === $givenValue) {
                     $choices[] = $this->choices[$i];
                     unset($values[$j]);
@@ -222,13 +167,6 @@ class ChoiceList implements ChoiceListInterface
     public function getValuesForChoices(array $choices)
     {
         $choices = $this->fixChoices($choices);
-
-        // If the values are identical to the choices, we can just return them
-        // to improve performance a little bit
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $this->fixValues(array_intersect($choices, $this->choices));
-        }
-
         $values = array();
 
         foreach ($this->choices as $i => $choice) {
@@ -302,8 +240,8 @@ class ChoiceList implements ChoiceListInterface
      *                                  view objects.
      * @param array $bucketForRemaining The bucket where to store the
      *                                  non-preferred view objects.
-     * @param array $choices The list of choices.
-     * @param array $labels The labels corresponding to the choices.
+     * @param array $choices          The list of choices.
+     * @param array $labels           The labels corresponding to the choices.
      * @param array $preferredChoices The preferred choices.
      *
      * @throws UnexpectedTypeException If the structure of the $labels array
@@ -349,13 +287,13 @@ class ChoiceList implements ChoiceListInterface
     /**
      * Recursively adds a choice group.
      *
-     * @param string $group The name of the group.
-     * @param array $bucketForPreferred The bucket where to store the preferred
+     * @param string $group              The name of the group.
+     * @param array  $bucketForPreferred The bucket where to store the preferred
      *                                  view objects.
      * @param array $bucketForRemaining The bucket where to store the
      *                                  non-preferred view objects.
-     * @param array $choices The list of choices in the group.
-     * @param array $labels The labels corresponding to the choices in the group.
+     * @param array $choices          The list of choices in the group.
+     * @param array $labels           The labels corresponding to the choices in the group.
      * @param array $preferredChoices The preferred choices.
      */
     protected function addChoiceGroup($group, &$bucketForPreferred, &$bucketForRemaining, $choices, $labels, array $preferredChoices)
@@ -389,26 +327,24 @@ class ChoiceList implements ChoiceListInterface
      *                                  view objects.
      * @param array $bucketForRemaining The bucket where to store the
      *                                  non-preferred view objects.
-     * @param mixed $choice The choice to add.
-     * @param string $label The label for the choice.
-     * @param array $preferredChoices The preferred choices.
+     * @param mixed  $choice           The choice to add.
+     * @param string $label            The label for the choice.
+     * @param array  $preferredChoices The preferred choices.
      */
     protected function addChoice(&$bucketForPreferred, &$bucketForRemaining, $choice, $label, array $preferredChoices)
     {
         $index = $this->createIndex($choice);
 
-        if ('' === $index || null === $index || !Form::isValidName((string)$index)) {
-            throw new InvalidConfigurationException('The choice list index "' . $index . '" is invalid. Please set the choice field option "index_generation" to ChoiceList::GENERATE.');
+        if ('' === $index || null === $index || !FormConfig::isValidName((string)$index)) {
+            throw new InvalidConfigurationException('The index "' . $index . '" created by the choice list is invalid. It should be a valid, non-empty Form name.');
         }
 
         $value = $this->createValue($choice);
 
-        if (!is_scalar($value)) {
-            throw new InvalidConfigurationException('The choice list value of type "' . gettype($value) . '" should be a scalar. Please set the choice field option "value_generation" to ChoiceList::GENERATE.');
+        if (!is_string($value)) {
+            throw new InvalidConfigurationException('The value created by the choice list is of type "' . gettype($value) . '", but should be a string.');
         }
 
-        // Always store values as strings to facilitate comparisons
-        $value = $this->fixValue($value);
         $view = new ChoiceView($value, $label);
 
         $this->choices[$index] = $this->fixChoice($choice);
@@ -428,7 +364,7 @@ class ChoiceList implements ChoiceListInterface
      * Extension point to optimize performance by changing the structure of the
      * $preferredChoices array.
      *
-     * @param mixed $choice The choice to test.
+     * @param mixed $choice           The choice to test.
      * @param array $preferredChoices An array of preferred choices.
      */
     protected function isPreferred($choice, $preferredChoices)
@@ -448,29 +384,23 @@ class ChoiceList implements ChoiceListInterface
      */
     protected function createIndex($choice)
     {
-        if (self::COPY_CHOICE === $this->indexStrategy) {
-            return $choice;
-        }
-
         return count($this->choices);
     }
 
     /**
      * Creates a new unique value for this choice.
      *
-     * Extension point to change the value strategy.
+     * By default, an integer is generated since it cannot be guaranteed that
+     * all values in the list are convertible to (unique) strings. Subclasses
+     * can override this behaviour if they can guarantee this property.
      *
      * @param mixed $choice The choice to create a value for
      *
-     * @return integer|string A unique value without character limitations.
+     * @return string A unique string.
      */
     protected function createValue($choice)
     {
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $choice;
-        }
-
-        return count($this->values);
+        return (string) count($this->values);
     }
 
     /**

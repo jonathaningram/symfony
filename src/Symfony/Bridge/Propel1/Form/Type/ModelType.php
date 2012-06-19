@@ -12,10 +12,11 @@
 namespace Symfony\Bridge\Propel1\Form\Type;
 
 use Symfony\Bridge\Propel1\Form\ChoiceList\ModelChoiceList;
-use Symfony\Bridge\Propel1\Form\DataTransformer\ModelToIdTransformer;
-use Symfony\Bridge\Propel1\Form\DataTransformer\ModelsToArrayTransformer;
+use Symfony\Bridge\Propel1\Form\DataTransformer\CollectionToArrayTransformer;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilder;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\Options;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 /**
  * ModelType class.
@@ -24,43 +25,40 @@ use Symfony\Component\Form\FormBuilder;
  */
 class ModelType extends AbstractType
 {
-    public function buildForm(FormBuilder $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options)
     {
         if ($options['multiple']) {
-            $builder->prependClientTransformer(new ModelsToArrayTransformer($options['choice_list']));
-        } else {
-            $builder->prependClientTransformer(new ModelToIdTransformer($options['choice_list']));
+            $builder->addViewTransformer(new CollectionToArrayTransformer(), true);
         }
     }
 
-    public function getDefaultOptions(array $options)
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        $defaultOptions = array(
+        $choiceList = function (Options $options) {
+            return new ModelChoiceList(
+                $options['class'],
+                $options['property'],
+                $options['choices'],
+                $options['query'],
+                $options['group_by']
+            );
+        };
+
+        $resolver->setDefaults(array(
             'template'          => 'choice',
             'multiple'          => false,
             'expanded'          => false,
             'class'             => null,
             'property'          => null,
             'query'             => null,
-            'choices'           => array(),
-            'preferred_choices' => array(),
-        );
-
-        $options = array_replace($defaultOptions, $options);
-
-        if (!isset($options['choice_list'])) {
-            $defaultOptions['choice_list'] = new ModelChoiceList(
-                $options['class'],
-                $options['property'],
-                $options['choices'],
-                $options['query']
-            );
-        }
-
-        return $defaultOptions;
+            'choices'           => null,
+            'choice_list'       => $choiceList,
+            'group_by'          => null,
+            'by_reference'      => false,
+        ));
     }
 
-    public function getParent(array $options)
+    public function getParent()
     {
         return 'choice';
     }

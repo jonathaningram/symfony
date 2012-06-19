@@ -18,7 +18,6 @@ use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\Scope;
 
 class WebProfilerExtensionTest extends TestCase
@@ -94,13 +93,12 @@ class WebProfilerExtensionTest extends TestCase
     /**
      * @dataProvider getDebugModes
      */
-    public function testToolbarConfig($enabled, $verbose)
+    public function testToolbarConfig($enabled)
     {
         $extension = new WebProfilerExtension();
-        $extension->load(array(array('toolbar' => $enabled, 'verbose' => $verbose)), $this->container);
+        $extension->load(array(array('toolbar' => $enabled)), $this->container);
 
         $this->assertSame($enabled, $this->container->get('web_profiler.debug_toolbar')->isEnabled());
-        $this->assertSame($enabled && $verbose, $this->container->get('web_profiler.debug_toolbar')->isVerbose());
 
         $this->assertSaneContainer($this->getDumpedContainer());
     }
@@ -108,10 +106,8 @@ class WebProfilerExtensionTest extends TestCase
     public function getDebugModes()
     {
         return array(
-            array(true, true),
-            array(true, false),
-            array(false, false),
-            array(false, true),
+            array(true),
+            array(false),
         );
     }
 

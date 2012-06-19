@@ -51,7 +51,10 @@
             <argument /> <!-- Key -->
         </service>
 
-        <service id="security.authentication.retry_entry_point" class="%security.authentication.retry_entry_point.class%" public="false" />
+        <service id="security.authentication.retry_entry_point" class="%security.authentication.retry_entry_point.class%" public="false">
+            <argument>%request_listener.http_port%</argument>
+            <argument>%request_listener.https_port%</argument>
+        </service>
 
         <service id="security.authentication.basic_entry_point" class="%security.authentication.basic_entry_point.class%" public="false" />
 
@@ -78,8 +81,7 @@
         <service id="security.logout_listener" class="%security.logout_listener.class%" public="false" abstract="true">
             <argument type="service" id="security.context" />
             <argument type="service" id="security.http_utils" />
-            <argument /> <!-- Logout Path -->
-            <argument /> <!-- Target-URL Path -->
+            <argument /> <!-- Options -->
             <argument type="service" id="security.logout.success_handler" on-invalid="null" />
         </service>
         <service id="security.logout.handler.session" class="%security.logout.handler.session.class%" public="false" />

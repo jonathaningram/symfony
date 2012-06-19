@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Bundle\TwigBundle\TwigEngine;
+use Symfony\Component\HttpFoundation\Session\Flash\AutoExpireFlashBag;
 
 /**
  * WebDebugToolbarListener injects the Web Debug Toolbar.
@@ -30,7 +31,6 @@ class WebDebugToolbarListener
 {
     const DISABLED        = 1;
     const ENABLED         = 2;
-    const ENABLED_MINIMAL = 3;
 
     protected $templating;
     protected $interceptRedirects;
@@ -43,11 +43,6 @@ class WebDebugToolbarListener
         $this->interceptRedirects = (Boolean) $interceptRedirects;
         $this->mode = (integer) $mode;
         $this->position = $position;
-    }
-
-    public function isVerbose()
-    {
-        return self::ENABLED === $this->mode;
     }
 
     public function isEnabled()
@@ -70,9 +65,10 @@ class WebDebugToolbarListener
         }
 
         if ($response->headers->has('X-Debug-Token') && $response->isRedirect() && $this->interceptRedirects) {
-            if (null !== $session = $request->getSession()) {
-                // keep current flashes for one more request
-                $session->setFlashes($session->getFlashes());
+            $session = $request->getSession();
+            if ($session && $session->getFlashBag() instanceof AutoExpireFlashBag) {
+                // keep current flashes for one more request if using AutoExpireFlashBag
+                $session->getFlashBag()->setAll($session->getFlashBag()->peekAll());
             }
 
             $response->setContent($this->templating->render('WebProfilerBundle:Profiler:toolbar_redirect.html.twig', array('location' => $response->headers->get('Location'))));

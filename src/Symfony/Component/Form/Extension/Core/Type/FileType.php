@@ -13,23 +13,46 @@ namespace Symfony\Component\Form\Extension\Core\Type;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\Form\FormView;
+use Symfony\Component\Form\FormViewInterface;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class FileType extends AbstractType
 {
     /**
      * {@inheritdoc}
      */
-    public function buildView(FormView $view, FormInterface $form)
+    public function buildView(FormViewInterface $view, FormInterface $form, array $options)
+    {
+        $view->addVars(array(
+            'type'  => 'file',
+            'value' => '',
+        ));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function finishView(FormViewInterface $view, FormInterface $form, array $options)
     {
         $view
-            ->set('multipart', true)
-            ->set('type', 'file')
-            ->set('value', '')
+            ->setVar('multipart', true)
         ;
     }
 
-    public function getParent(array $options)
+    /**
+     * {@inheritdoc}
+     */
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    {
+        $resolver->setDefaults(array(
+            'compound' => false,
+        ));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getParent()
     {
         return 'field';
     }

@@ -81,7 +81,7 @@ class YamlFileLoader extends FileLoader
     /**
      * Parses all imports
      *
-     * @param array $content
+     * @param array  $content
      * @param string $file
      */
     private function parseImports($content, $file)
@@ -99,7 +99,7 @@ class YamlFileLoader extends FileLoader
     /**
      * Parses definitions
      *
-     * @param array $content
+     * @param array  $content
      * @param string $file
      */
     private function parseDefinitions($content, $file)
@@ -117,7 +117,7 @@ class YamlFileLoader extends FileLoader
      * Parses a definition.
      *
      * @param string $id
-     * @param array $service
+     * @param array  $service
      * @param string $file
      */
     private function parseDefinition($id, $service, $file)
@@ -193,7 +193,8 @@ class YamlFileLoader extends FileLoader
 
         if (isset($service['calls'])) {
             foreach ($service['calls'] as $call) {
-                $definition->addMethodCall($call[0], $this->resolveServices($call[1]));
+                $args = isset($call[1]) ? $this->resolveServices($call[1]) : array();
+                $definition->addMethodCall($call[0], $args);
             }
         }
 
@@ -209,6 +210,12 @@ class YamlFileLoader extends FileLoader
 
                 $name = $tag['name'];
                 unset($tag['name']);
+
+                foreach ($tag as $attribute => $value) {
+                    if (!is_scalar($value)) {
+                        throw new InvalidArgumentException(sprintf('A "tags" attribute must be of a scalar-type for service "%s", tag "%s" in %s.', $id, $name, $file));
+                    }
+                }
 
                 $definition->addTag($name, $tag);
             }
@@ -232,7 +239,7 @@ class YamlFileLoader extends FileLoader
     /**
      * Validates a YAML file.
      *
-     * @param mixed $content
+     * @param mixed  $content
      * @param string $file
      *
      * @return array

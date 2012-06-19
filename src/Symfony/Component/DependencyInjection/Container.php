@@ -59,7 +59,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\FrozenParameterBag;
  *
  * @api
  */
-class Container implements ContainerInterface
+class Container implements IntrospectableContainerInterface
 {
     protected $parameterBag;
     protected $services;
@@ -133,7 +133,7 @@ class Container implements ContainerInterface
     /**
      * Gets a parameter.
      *
-     * @param  string $name The parameter name
+     * @param string $name The parameter name
      *
      * @return mixed  The parameter value
      *
@@ -149,7 +149,7 @@ class Container implements ContainerInterface
     /**
      * Checks if a parameter exists.
      *
-     * @param  string $name The parameter name
+     * @param string $name The parameter name
      *
      * @return Boolean The presence of parameter in container
      *
@@ -204,7 +204,7 @@ class Container implements ContainerInterface
     /**
      * Returns true if the given service is defined.
      *
-     * @param  string  $id      The service identifier
+     * @param string $id The service identifier
      *
      * @return Boolean true if the service is defined, false otherwise
      *
@@ -223,8 +223,8 @@ class Container implements ContainerInterface
      * If a service is both defined through a set() method and
      * with a set*Service() method, the former has always precedence.
      *
-     * @param  string  $id              The service identifier
-     * @param  integer $invalidBehavior The behavior when the service does not exist
+     * @param string  $id              The service identifier
+     * @param integer $invalidBehavior The behavior when the service does not exist
      *
      * @return object The associated service
      *
@@ -267,6 +267,18 @@ class Container implements ContainerInterface
     }
 
     /**
+     * Returns true if the given service has actually been initialized
+     *
+     * @param string $id The service identifier
+     *
+     * @return Boolean true if service has already been initialized, false otherwise
+     */
+    public function initialized($id)
+    {
+        return isset($this->services[strtolower($id)]);
+    }
+
+    /**
      * Gets all service ids.
      *
      * @return array An array of all defined service ids
@@ -276,7 +288,7 @@ class Container implements ContainerInterface
         $ids = array();
         $r = new \ReflectionClass($this);
         foreach ($r->getMethods() as $method) {
-            if (preg_match('/^get(.+)Service$/', $method->getName(), $match)) {
+            if (preg_match('/^get(.+)Service$/', $method->name, $match)) {
                 $ids[] = self::underscore($match[1]);
             }
         }

@@ -37,7 +37,7 @@ class TwigExtensionTest extends TestCase
         $options = $container->getParameter('twig.options');
         $this->assertEquals(__DIR__.'/twig', $options['cache'], '->load() sets default value for cache option');
         $this->assertEquals('UTF-8', $options['charset'], '->load() sets default value for charset option');
-        $this->assertEquals(false, $options['debug'], '->load() sets default value for debug option');
+        $this->assertFalse($options['debug'], '->load() sets default value for debug option');
     }
 
     /**
@@ -63,6 +63,12 @@ class TwigExtensionTest extends TestCase
         $this->assertEquals(new Reference('bar'), $calls[0][1][1], '->load() registers services as Twig globals');
         $this->assertEquals('pi', $calls[1][1][0], '->load() registers variables as Twig globals');
         $this->assertEquals(3.14, $calls[1][1][1], '->load() registers variables as Twig globals');
+
+        // Yaml and Php specific configs
+        if (in_array($format, array('yml', 'php'))) {
+            $this->assertEquals('bad', $calls[2][1][0], '->load() registers variables as Twig globals');
+            $this->assertEquals(array('key' => 'foo'), $calls[2][1][1], '->load() registers variables as Twig globals');
+        }
 
         // Twig options
         $options = $container->getParameter('twig.options');

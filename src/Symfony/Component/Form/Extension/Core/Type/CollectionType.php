@@ -12,24 +12,27 @@
 namespace Symfony\Component\Form\Extension\Core\Type;
 
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilder;
-use Symfony\Component\Form\FormView;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormViewInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Extension\Core\EventListener\ResizeFormListener;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class CollectionType extends AbstractType
 {
     /**
      * {@inheritdoc}
      */
-    public function buildForm(FormBuilder $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options)
     {
         if ($options['allow_add'] && $options['prototype']) {
-            $prototype = $builder->create($options['prototype_name'], $options['type'], $options['options']);
+            $prototype = $builder->create($options['prototype_name'], $options['type'], array_replace(array(
+                'label' => $options['prototype_name'] . 'label__',
+            ), $options['options']));
             $builder->setAttribute('prototype', $prototype->getForm());
         }
 
-        $listener = new ResizeFormListener(
+        $resizeListener = new ResizeFormListener(
             $builder->getFormFactory(),
             $options['type'],
             $options['options'],
@@ -37,51 +40,47 @@ class CollectionType extends AbstractType
             $options['allow_delete']
         );
 
-        $builder
-            ->addEventSubscriber($listener)
-            ->setAttribute('allow_add', $options['allow_add'])
-            ->setAttribute('allow_delete', $options['allow_delete'])
-        ;
+        $builder->addEventSubscriber($resizeListener);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function buildView(FormView $view, FormInterface $form)
+    public function buildView(FormViewInterface $view, FormInterface $form, array $options)
     {
-        $view
-            ->set('allow_add', $form->getAttribute('allow_add'))
-            ->set('allow_delete', $form->getAttribute('allow_delete'))
-        ;
+        $view->addVars(array(
+            'allow_add'    => $options['allow_add'],
+            'allow_delete' => $options['allow_delete'],
+        ));
 
-        if ($form->hasAttribute('prototype')) {
-            $view->set('prototype', $form->getAttribute('prototype')->createView($view));
+        if ($form->getConfig()->hasAttribute('prototype')) {
+            $view->setVar('prototype', $form->getConfig()->getAttribute('prototype')->createView($view));
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function buildViewBottomUp(FormView $view, FormInterface $form)
+    public function finishView(FormViewInterface $view, FormInterface $form, array $options)
     {
-        if ($form->hasAttribute('prototype') && $view->get('prototype')->get('multipart')) {
-            $view->set('multipart', true);
+        if ($form->getConfig()->hasAttribute('prototype') && $view->getVar('prototype')->getVar('multipart')) {
+            $view->setVar('multipart', true);
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        return array(
+        $resolver->setDefaults(array(
             'allow_add'      => false,
             'allow_delete'   => false,
             'prototype'      => true,
             'prototype_name' => '__name__',
             'type'           => 'text',
             'options'        => array(),
-        );
+        ));
     }
 
     /**

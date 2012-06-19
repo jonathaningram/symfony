@@ -20,15 +20,16 @@ class EntityType extends DoctrineType
      * Return the default loader object.
      *
      * @param ObjectManager $manager
-     * @param array $options
+     * @param mixed         $queryBuilder
+     * @param string        $class
      * @return ORMQueryBuilderLoader
      */
-    protected function getLoader(ObjectManager $manager, array $options)
+    public function getLoader(ObjectManager $manager, $queryBuilder, $class)
     {
         return new ORMQueryBuilderLoader(
-            $options['query_builder'],
+            $queryBuilder,
             $manager,
-            $options['class']
+            $class
         );
     }
 

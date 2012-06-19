@@ -1,15 +1,15 @@
 <?php
 
-namespace Symfony\Component\Serializer\Normalizer;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien@symfony.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\Serializer\Normalizer;
 
 /**
  * Defines the interface of normalizers.
@@ -30,8 +30,8 @@ interface NormalizerInterface
     /**
      * Checks whether the given class is supported for normalization by this normalizer
      *
-     * @param mixed   $data   Data to normalize.
-     * @param string  $format The format being (de-)serialized from or into.
+     * @param mixed  $data   Data to normalize.
+     * @param string $format The format being (de-)serialized from or into.
      * @return Boolean
      */
     function supportsNormalization($data, $format = null);

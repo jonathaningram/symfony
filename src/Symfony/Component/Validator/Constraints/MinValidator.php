@@ -15,6 +15,8 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
+ * @author Bernhard Schussek <bschussek@gmail.com>
+ *
  * @api
  */
 class MinValidator extends ConstraintValidator
@@ -25,34 +27,28 @@ class MinValidator extends ConstraintValidator
      * @param mixed      $value      The value that should be validated
      * @param Constraint $constraint The constraint for the validation
      *
-     * @return Boolean Whether or not the value is valid
-     *
      * @api
      */
-    public function isValid($value, Constraint $constraint)
+    public function validate($value, Constraint $constraint)
     {
         if (null === $value) {
-            return true;
+            return;
         }
 
         if (!is_numeric($value)) {
-            $this->setMessage($constraint->invalidMessage, array(
+            $this->context->addViolation($constraint->invalidMessage, array(
                 '{{ value }}' => $value,
                 '{{ limit }}' => $constraint->limit,
             ));
 
-            return false;
+            return;
         }
 
         if ($value < $constraint->limit) {
-            $this->setMessage($constraint->message, array(
+            $this->context->addViolation($constraint->message, array(
                 '{{ value }}' => $value,
                 '{{ limit }}' => $constraint->limit,
             ));
-
-            return false;
         }
-
-        return true;
     }
 }

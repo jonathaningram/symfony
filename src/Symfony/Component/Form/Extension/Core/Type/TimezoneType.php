@@ -12,7 +12,7 @@
 namespace Symfony\Component\Form\Extension\Core\Type;
 
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceList;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class TimezoneType extends AbstractType
 {
@@ -20,28 +20,22 @@ class TimezoneType extends AbstractType
      * Stores the available timezone choices
      * @var array
      */
-    static protected $timezones;
+    static private $timezones;
 
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        $defaultOptions = array(
-            'value_strategy' => ChoiceList::COPY_CHOICE,
-        );
-
-        if (!isset($options['choice_list']) && !isset($options['choices'])) {
-            $defaultOptions['choices'] = self::getTimezones();
-        }
-
-        return $defaultOptions;
+        $resolver->setDefaults(array(
+            'choices' => self::getTimezones(),
+        ));
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getParent(array $options)
+    public function getParent()
     {
         return 'choice';
     }
@@ -64,7 +58,7 @@ class TimezoneType extends AbstractType
      *
      * @return array The timezone choices
      */
-    static private function getTimezones()
+    static public function getTimezones()
     {
         if (null === static::$timezones) {
             static::$timezones = array();

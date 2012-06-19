@@ -12,143 +12,175 @@
 namespace Symfony\Component\Form\Extension\Core\Type;
 
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilder;
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormViewInterface;
 use Symfony\Component\Form\Exception\FormException;
 use Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceList;
 use Symfony\Component\Form\Extension\Core\ChoiceList\SimpleChoiceList;
 use Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface;
 use Symfony\Component\Form\Extension\Core\EventListener\FixRadioInputListener;
-use Symfony\Component\Form\FormView;
+use Symfony\Component\Form\Extension\Core\EventListener\FixCheckboxInputListener;
+use Symfony\Component\Form\Extension\Core\EventListener\MergeCollectionListener;
 use Symfony\Component\Form\Extension\Core\DataTransformer\ChoiceToValueTransformer;
 use Symfony\Component\Form\Extension\Core\DataTransformer\ChoiceToBooleanArrayTransformer;
 use Symfony\Component\Form\Extension\Core\DataTransformer\ChoicesToValuesTransformer;
 use Symfony\Component\Form\Extension\Core\DataTransformer\ChoicesToBooleanArrayTransformer;
+use Symfony\Component\OptionsResolver\Options;
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class ChoiceType extends AbstractType
 {
     /**
      * {@inheritdoc}
      */
-    public function buildForm(FormBuilder $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        if ($options['choice_list'] && !$options['choice_list'] instanceof ChoiceListInterface) {
-            throw new FormException('The "choice_list" must be an instance of "Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface".');
-        }
-
-        if (!$options['choice_list'] && !$options['choices']) {
+        if (!$options['choice_list'] && !is_array($options['choices']) && !$options['choices'] instanceof \Traversable) {
             throw new FormException('Either the option "choices" or "choice_list" must be set.');
         }
 
-        if (!$options['choice_list']) {
-            $options['choice_list'] = new SimpleChoiceList(
-                $options['choices'],
-                $options['preferred_choices'],
-                $options['value_strategy'],
-                $options['index_strategy']
-            );
-        }
-
         if ($options['expanded']) {
-            $this->addSubFields($builder, $options['choice_list']->getPreferredViews(), $options);
-            $this->addSubFields($builder, $options['choice_list']->getRemainingViews(), $options);
-        }
+            $this->addSubForms($builder, $options['choice_list']->getPreferredViews(), $options);
+            $this->addSubForms($builder, $options['choice_list']->getRemainingViews(), $options);
 
-        // empty value
-        if ($options['multiple'] || $options['expanded']) {
-            // never use and empty value for these cases
-            $emptyValue = null;
-        } elseif (false === $options['empty_value']) {
-            // an empty value should be added but the user decided otherwise
-            $emptyValue = null;
-        } elseif (null === $options['empty_value']) {
-            // user did not made a decision, so we put a blank empty value
-            $emptyValue = $options['required'] ? null : '';
-        } else {
-            // empty value has been set explicitly
-            $emptyValue = $options['empty_value'];
-        }
-
-        $builder
-            ->setAttribute('choice_list', $options['choice_list'])
-            ->setAttribute('preferred_choices', $options['preferred_choices'])
-            ->setAttribute('multiple', $options['multiple'])
-            ->setAttribute('expanded', $options['expanded'])
-            ->setAttribute('required', $options['required'])
-            ->setAttribute('empty_value', $emptyValue)
-        ;
-
-        if ($options['expanded']) {
             if ($options['multiple']) {
-                $builder->appendClientTransformer(new ChoicesToBooleanArrayTransformer($options['choice_list']));
+                $builder
+                    ->addViewTransformer(new ChoicesToBooleanArrayTransformer($options['choice_list']))
+                    ->addEventSubscriber(new FixCheckboxInputListener($options['choice_list']), 10)
+                ;
             } else {
                 $builder
-                    ->appendClientTransformer(new ChoiceToBooleanArrayTransformer($options['choice_list']))
+                    ->addViewTransformer(new ChoiceToBooleanArrayTransformer($options['choice_list']))
                     ->addEventSubscriber(new FixRadioInputListener($options['choice_list']), 10)
                 ;
             }
         } else {
             if ($options['multiple']) {
-                $builder->appendClientTransformer(new ChoicesToValuesTransformer($options['choice_list']));
+                $builder->addViewTransformer(new ChoicesToValuesTransformer($options['choice_list']));
             } else {
-                $builder->appendClientTransformer(new ChoiceToValueTransformer($options['choice_list']));
+                $builder->addViewTransformer(new ChoiceToValueTransformer($options['choice_list']));
             }
         }
 
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function buildView(FormView $view, FormInterface $form)
-    {
-        $choiceList = $form->getAttribute('choice_list');
-
-        $view
-            ->set('multiple', $form->getAttribute('multiple'))
-            ->set('expanded', $form->getAttribute('expanded'))
-            ->set('preferred_choices', $choiceList->getPreferredViews())
-            ->set('choices', $choiceList->getRemainingViews())
-            ->set('separator', '-------------------')
-            ->set('empty_value', $form->getAttribute('empty_value'))
-        ;
-
-        if ($view->get('multiple') && !$view->get('expanded')) {
-            // Add "[]" to the name in case a select tag with multiple options is
-            // displayed. Otherwise only one of the selected options is sent in the
-            // POST request.
-            $view->set('full_name', $view->get('full_name').'[]');
+        if ($options['multiple'] && $options['by_reference']) {
+            // Make sure the collection created during the client->norm
+            // transformation is merged back into the original collection
+            $builder->addEventSubscriber(new MergeCollectionListener(true, true));
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function buildView(FormViewInterface $view, FormInterface $form, array $options)
     {
-        $multiple = isset($options['multiple']) && $options['multiple'];
-        $expanded = isset($options['expanded']) && $options['expanded'];
+        $view->addVars(array(
+            'multiple'          => $options['multiple'],
+            'expanded'          => $options['expanded'],
+            'preferred_choices' => $options['choice_list']->getPreferredViews(),
+            'choices'           => $options['choice_list']->getRemainingViews(),
+            'separator'         => '-------------------',
+            'empty_value'       => $options['empty_value'],
+        ));
 
-        return array(
-            'multiple'          => false,
-            'expanded'          => false,
-            'choice_list'       => null,
-            'choices'           => array(),
-            'preferred_choices' => array(),
-            'value_strategy'    => ChoiceList::GENERATE,
-            'index_strategy'    => ChoiceList::GENERATE,
-            'empty_data'        => $multiple || $expanded ? array() : '',
-            'empty_value'       => $multiple || $expanded || !isset($options['empty_value']) ? null : '',
-            'error_bubbling'    => false,
-        );
+        if ($options['multiple'] && !$options['expanded']) {
+            // Add "[]" to the name in case a select tag with multiple options is
+            // displayed. Otherwise only one of the selected options is sent in the
+            // POST request.
+            $view->setVar('full_name', $view->getVar('full_name').'[]');
+        }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getParent(array $options)
+    public function finishView(FormViewInterface $view, FormInterface $form, array $options)
     {
-        return $options['expanded'] ? 'form' : 'field';
+        if ($options['expanded']) {
+            // Radio buttons should have the same name as the parent
+            $childName = $view->getVar('full_name');
+
+            // Checkboxes should append "[]" to allow multiple selection
+            if ($options['multiple']) {
+                $childName .= '[]';
+            }
+
+            foreach ($view as $childView) {
+                $childView->setVar('full_name', $childName);
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    {
+        $choiceList = function (Options $options) {
+            return new SimpleChoiceList(
+                // Harden against NULL values (like in EntityType and ModelType)
+                null !== $options['choices'] ? $options['choices'] : array(),
+                $options['preferred_choices']
+            );
+        };
+
+        $emptyData = function (Options $options) {
+            if ($options['multiple'] || $options['expanded']) {
+                return array();
+            }
+
+            return '';
+        };
+
+        $emptyValue = function (Options $options) {
+            return $options['required'] ? null : '';
+        };
+
+        $emptyValueFilter = function (Options $options, $emptyValue) {
+            if ($options['multiple'] || $options['expanded']) {
+                // never use an empty value for these cases
+                return null;
+            } elseif (false === $emptyValue) {
+                // an empty value should be added but the user decided otherwise
+                return null;
+            }
+
+            // empty value has been set explicitly
+            return $emptyValue;
+        };
+
+        $compound = function (Options $options) {
+            return $options['expanded'];
+        };
+
+        $resolver->setDefaults(array(
+            'multiple'          => false,
+            'expanded'          => false,
+            'choice_list'       => $choiceList,
+            'choices'           => array(),
+            'preferred_choices' => array(),
+            'empty_data'        => $emptyData,
+            'empty_value'       => $emptyValue,
+            'error_bubbling'    => false,
+            'compound'          => $compound,
+        ));
+
+        $resolver->setFilters(array(
+            'empty_value' => $emptyValueFilter,
+        ));
+
+        $resolver->setAllowedTypes(array(
+            'choice_list' => array('null', 'Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface'),
+        ));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getParent()
+    {
+        return 'field';
     }
 
     /**
@@ -162,31 +194,33 @@ class ChoiceType extends AbstractType
     /**
      * Adds the sub fields for an expanded choice field.
      *
-     * @param FormBuilder $builder The form builder.
-     * @param array $choiceViews The choice view objects.
-     * @param array $options The build options.
+     * @param FormBuilderInterface $builder     The form builder.
+     * @param array                $choiceViews The choice view objects.
+     * @param array                $options     The build options.
      */
-    private function addSubFields(FormBuilder $builder, array $choiceViews, array $options)
+    private function addSubForms(FormBuilderInterface $builder, array $choiceViews, array $options)
     {
         foreach ($choiceViews as $i => $choiceView) {
             if (is_array($choiceView)) {
                 // Flatten groups
-                $this->addSubFields($builder, $choiceView, $options);
-            } elseif ($options['multiple']) {
-                $builder->add((string) $i, 'checkbox', array(
+                $this->addSubForms($builder, $choiceView, $options);
+            } else {
+                $choiceOpts = array(
                     'value' => $choiceView->getValue(),
                     'label' => $choiceView->getLabel(),
+                    'translation_domain' => $options['translation_domain'],
+                );
+
+                if ($options['multiple']) {
+                    $choiceType = 'checkbox';
                     // The user can check 0 or more checkboxes. If required
                     // is true, he is required to check all of them.
-                    'required' => false,
-                    'translation_domain' => $options['translation_domain'],
-                ));
-            } else {
-                $builder->add((string) $i, 'radio', array(
-                    'value' => $choiceView->getValue(),
-                    'label' => $choiceView->getLabel(),
-                    'translation_domain' => $options['translation_domain'],
-                ));
+                    $choiceOpts['required'] = false;
+                } else {
+                    $choiceType = 'radio';
+                }
+
+                $builder->add((string) $i, $choiceType, $choiceOpts);
             }
         }
     }

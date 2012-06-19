@@ -19,7 +19,7 @@ use Symfony\Component\Form\Exception\UnexpectedTypeException;
  * Transforms between a number type and a localized number with grouping
  * (each thousand) and comma separators.
  *
- * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  * @author Florian Eckerstorfer <florian@eckerstorfer.org>
  */
 class NumberToLocalizedStringTransformer implements DataTransformerInterface
@@ -56,7 +56,7 @@ class NumberToLocalizedStringTransformer implements DataTransformerInterface
     /**
      * Transforms a number type into localized number.
      *
-     * @param  integer|float $value  Number value.
+     * @param integer|float $value Number value.
      *
      * @return string Localized value.
      *
@@ -112,6 +112,10 @@ class NumberToLocalizedStringTransformer implements DataTransformerInterface
 
         if (intl_is_failure($formatter->getErrorCode())) {
             throw new TransformationFailedException($formatter->getErrorMessage());
+        }
+
+        if ($value >= INF || $value <= -INF) {
+            throw new TransformationFailedException('I don\'t have a clear idea what infinity looks like');
         }
 
         return $value;

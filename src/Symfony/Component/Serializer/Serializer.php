@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Component\Serializer;
 
 use Symfony\Component\Serializer\Encoder\EncoderInterface;
@@ -10,15 +19,6 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Exception\RuntimeException;
 use Symfony\Component\Serializer\Exception\LogicException;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
-
-/*
- * This file is part of the Symfony framework.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
- */
 
 /**
  * Serializer serializes and deserializes data
@@ -240,8 +240,8 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
     /**
      * Denormalizes data back into an object of the given class
      *
-     * @param mixed $data data to restore
-     * @param string $class the expected class to instantiate
+     * @param mixed  $data   data to restore
+     * @param string $class  the expected class to instantiate
      * @param string $format format name, present to give the option to normalizers to act differently based on formats
      * @return object
      */

@@ -1,7 +1,5 @@
 <?php
 
-namespace Symfony\Component\Validator;
-
 /*
  * This file is part of the Symfony package.
  *
@@ -11,12 +9,14 @@ namespace Symfony\Component\Validator;
  * file that was distributed with this source code.
  */
 
+namespace Symfony\Component\Validator;
+
 use Symfony\Component\Validator\Mapping\ClassMetadataFactoryInterface;
 
 /**
  * Default implementation of ValidatorContextInterface
  *
- * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  */
 class ValidatorContext implements ValidatorContextInterface
 {

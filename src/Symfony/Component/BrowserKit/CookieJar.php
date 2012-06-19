@@ -89,6 +89,31 @@ class CookieJar
     }
 
     /**
+     * Updates the cookie jar from a response Set-Cookie headers.
+     *
+     * @param array  $setCookies Set-Cookie headers from an HTTP response
+     * @param string $uri        The base URL
+     */
+    public function updateFromSetCookie(array $setCookies, $uri = null)
+    {
+        $cookies = array();
+
+        foreach ($setCookies as $cookie) {
+            foreach (explode(',', $cookie) as $i => $part) {
+                if (0 === $i || preg_match('/^(?P<token>\s*[0-9A-Za-z!#\$%\&\'\*\+\-\.^_`\|~]+)=/', $part)) {
+                    $cookies[] = ltrim($part);
+                } else {
+                    $cookies[count($cookies) - 1] .= ','.$part;
+                }
+            }
+        }
+
+        foreach ($cookies as $cookie) {
+            $this->set(Cookie::fromString($cookie, $uri));
+        }
+    }
+
+    /**
      * Updates the cookie jar from a Response object.
      *
      * @param Response $response A Response object
@@ -96,9 +121,7 @@ class CookieJar
      */
     public function updateFromResponse(Response $response, $uri = null)
     {
-        foreach ($response->getHeader('Set-Cookie', false) as $cookie) {
-            $this->set(Cookie::fromString($cookie, $uri));
-        }
+        $this->updateFromSetCookie($response->getHeader('Set-Cookie', false), $uri);
     }
 
     /**

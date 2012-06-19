@@ -1,12 +1,12 @@
 <?php
 
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien@symfony.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace Symfony\Bundle\FrameworkBundle\Tests;
@@ -48,8 +48,7 @@ class HttpKernelTest extends \PHPUnit_Framework_TestCase
         $resolver = $this->getMock('Symfony\\Component\\HttpKernel\\Controller\\ControllerResolverInterface');
         $kernel = new HttpKernel($dispatcher, $container, $resolver);
 
-        $controller = function() use($expected)
-        {
+        $controller = function() use($expected) {
             return $expected;
         };
 
@@ -96,8 +95,7 @@ class HttpKernelTest extends \PHPUnit_Framework_TestCase
         $resolver = $this->getMock('Symfony\\Component\\HttpKernel\\Controller\\ControllerResolverInterface');
         $kernel = new HttpKernel($dispatcher, $container, $resolver);
 
-        $controller = function() use ($expected)
-        {
+        $controller = function() use ($expected) {
             throw $expected;
         };
 
@@ -169,10 +167,6 @@ class HttpKernelTest extends \PHPUnit_Framework_TestCase
 
     public function testExceptionInSubRequestsDoesNotMangleOutputBuffers()
     {
-        if (version_compare(phpversion(), "5.3.2", "<=")) {
-            $this->markTestSkipped('Test fails with PHP5.3.2 due to https://bugs.php.net/bug.php?id=50563');
-        }
-
         $request = new Request();
 
         $container = $this->getMock('Symfony\\Component\\DependencyInjection\\ContainerInterface');

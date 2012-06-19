@@ -32,7 +32,7 @@ interface MutableAclInterface extends AclInterface
      * Deletes a class-field-based ACE
      *
      * @param integer $index
-     * @param string $field
+     * @param string  $field
      */
     function deleteClassFieldAce($index, $field);
 
@@ -47,7 +47,7 @@ interface MutableAclInterface extends AclInterface
      * Deletes an object-field-based ACE
      *
      * @param integer $index
-     * @param string $field
+     * @param string  $field
      */
     function deleteObjectFieldAce($index, $field);
 
@@ -114,16 +114,17 @@ interface MutableAclInterface extends AclInterface
     /**
      * Sets the parent ACL
      *
-     * @param AclInterface $acl
+     * @param AclInterface|null $acl
+     * @return void
      */
-    function setParentAcl(AclInterface $acl);
+    function setParentAcl(AclInterface $acl = null);
 
     /**
      * Updates a class-based ACE
      *
      * @param integer $index
      * @param integer $mask
-     * @param string $strategy if null the strategy should not be changed
+     * @param string  $strategy if null the strategy should not be changed
      */
     function updateClassAce($index, $mask, $strategy = null);
 
@@ -131,9 +132,9 @@ interface MutableAclInterface extends AclInterface
      * Updates a class-field-based ACE
      *
      * @param integer $index
-     * @param string $field
+     * @param string  $field
      * @param integer $mask
-     * @param string $strategy if null the strategy should not be changed
+     * @param string  $strategy if null the strategy should not be changed
      */
     function updateClassFieldAce($index, $field, $mask, $strategy = null);
 
@@ -142,7 +143,7 @@ interface MutableAclInterface extends AclInterface
      *
      * @param integer $index
      * @param integer $mask
-     * @param string $strategy if null the strategy should not be changed
+     * @param string  $strategy if null the strategy should not be changed
      */
     function updateObjectAce($index, $mask, $strategy = null);
 
@@ -150,9 +151,9 @@ interface MutableAclInterface extends AclInterface
      * Updates an object-field-based ACE
      *
      * @param integer $index
-     * @param string $field
+     * @param string  $field
      * @param integer $mask
-     * @param string $strategy if null the strategy should not be changed
+     * @param string  $strategy if null the strategy should not be changed
      */
     function updateObjectFieldAce($index, $field, $mask, $strategy = null);
 }

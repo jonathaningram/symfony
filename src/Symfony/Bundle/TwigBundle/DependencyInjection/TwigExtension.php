@@ -36,7 +36,21 @@ class TwigExtension extends Extension
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('twig.xml');
 
+        foreach ($configs as &$config) {
+            if (isset($config['globals'])) {
+                foreach ($config['globals'] as $name => $value) {
+                    if (is_array($value) && isset($value['key'])) {
+                        $config['globals'][$name] = array(
+                            'key'   => $name,
+                            'value' => $config['globals'][$name]
+                        );
+                    }
+                }
+            }
+        }
+
         $configuration = $this->getConfiguration($configs, $container);
+
         $config = $this->processConfiguration($configuration, $configs);
 
         $container->setParameter('twig.exception_listener.controller', $config['exception_controller']);
@@ -44,7 +58,7 @@ class TwigExtension extends Extension
         $container->setParameter('twig.form.resources', $config['form']['resources']);
 
         $reflClass = new \ReflectionClass('Symfony\Bridge\Twig\Extension\FormExtension');
-        $container->getDefinition('twig.loader')->addMethodCall('addPath', array(dirname(dirname($reflClass->getFileName())) . '/Resources/views/Form'));
+        $container->getDefinition('twig.loader')->addMethodCall('addPath', array(dirname(dirname($reflClass->getFileName())).'/Resources/views/Form'));
 
         if (!empty($config['globals'])) {
             $def = $container->getDefinition('twig');
@@ -70,6 +84,10 @@ class TwigExtension extends Extension
 
             $container->setDefinition('templating.engine.twig', $container->findDefinition('debug.templating.engine.twig'));
             $container->setAlias('debug.templating.engine.twig', 'templating.engine.twig');
+        }
+
+        if (!isset($config['autoescape'])) {
+            $container->findDefinition('templating.engine.twig')->addMethodCall('setDefaultEscapingStrategy', array(array(new Reference('templating.engine.twig'), 'guessDefaultEscapingStrategy')));
         }
 
         $this->addClassesToCompile(array(

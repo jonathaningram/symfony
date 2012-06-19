@@ -22,27 +22,28 @@ use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
  */
 class ImageValidator extends FileValidator
 {
-    public function isValid($value, Constraint $constraint)
+    public function validate($value, Constraint $constraint)
     {
-        $isValid = parent::isValid($value, $constraint);
-        if (!$isValid) {
-            return false;
-        }
+        $violations = count($this->context->getViolations());
 
-        if (null === $value || '' === $value) {
-            return true;
+        parent::validate($value, $constraint);
+
+        $failed = count($this->context->getViolations()) !== $violations;
+
+        if ($failed || null === $value || '' === $value) {
+            return;
         }
 
         if (null === $constraint->minWidth && null === $constraint->maxWidth
             && null === $constraint->minHeight && null === $constraint->maxHeight) {
-            return true;
+            return;
         }
 
         $size = @getimagesize($value);
         if (empty($size) || ($size[0] === 0) || ($size[1] === 0)) {
-            $this->setMessage($constraint->sizeNotDetectedMessage);
+            $this->context->addViolation($constraint->sizeNotDetectedMessage);
 
-            return false;
+            return;
         }
 
         $width  = $size[0];
@@ -54,12 +55,12 @@ class ImageValidator extends FileValidator
             }
 
             if ($width < $constraint->minWidth) {
-                $this->setMessage($constraint->minWidthMessage, array(
+                $this->context->addViolation($constraint->minWidthMessage, array(
                     '{{ width }}'    => $width,
                     '{{ min_width }}' => $constraint->minWidth
                 ));
 
-                return false;
+                return;
             }
         }
 
@@ -69,12 +70,12 @@ class ImageValidator extends FileValidator
             }
 
             if ($width > $constraint->maxWidth) {
-                $this->setMessage($constraint->maxWidthMessage, array(
+                $this->context->addViolation($constraint->maxWidthMessage, array(
                     '{{ width }}'    => $width,
                     '{{ max_width }}' => $constraint->maxWidth
                 ));
 
-                return false;
+                return;
             }
         }
 
@@ -84,12 +85,12 @@ class ImageValidator extends FileValidator
             }
 
             if ($height < $constraint->minHeight) {
-                $this->setMessage($constraint->minHeightMessage, array(
+                $this->context->addViolation($constraint->minHeightMessage, array(
                     '{{ height }}'    => $height,
                     '{{ min_height }}' => $constraint->minHeight
                 ));
 
-                return false;
+                return;
             }
         }
 
@@ -99,15 +100,11 @@ class ImageValidator extends FileValidator
             }
 
             if ($height > $constraint->maxHeight) {
-                $this->setMessage($constraint->maxHeightMessage, array(
+                $this->context->addViolation($constraint->maxHeightMessage, array(
                     '{{ height }}'    => $height,
                     '{{ max_height }}' => $constraint->maxHeight
                 ));
-
-                return false;
             }
         }
-
-        return true;
     }
 }
