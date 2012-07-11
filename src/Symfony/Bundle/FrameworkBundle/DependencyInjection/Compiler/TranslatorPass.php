@@ -43,4 +43,3 @@ class TranslatorPass implements CompilerPassInterface
         $container->findDefinition('translator.default')->replaceArgument(2, $loaders);
     }
 }
-

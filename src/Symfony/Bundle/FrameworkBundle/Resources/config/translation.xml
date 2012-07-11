@@ -137,4 +137,3 @@
         <service id="translation.writer" class="%translation.writer.class%"/>
     </services>
 </container>
-
