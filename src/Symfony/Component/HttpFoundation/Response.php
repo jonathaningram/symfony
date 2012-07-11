@@ -61,7 +61,7 @@ class Response
      *
      * @var array
      */
-    static public $statusTexts = array(
+    public static $statusTexts = array(
         100 => 'Continue',
         101 => 'Switching Protocols',
         102 => 'Processing',            // RFC2518
@@ -158,7 +158,7 @@ class Response
      *
      * @return Response
      */
-    static public function create($content = '', $status = 200, $headers = array())
+    public static function create($content = '', $status = 200, $headers = array())
     {
         return new static($content, $status, $headers);
     }
@@ -706,7 +706,7 @@ class Response
      * When the responses TTL is <= 0, the response may not be served from cache without first
      * revalidating with the origin.
      *
-     * @return integer The TTL in seconds
+     * @return integer|null The TTL in seconds
      *
      * @api
      */

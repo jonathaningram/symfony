@@ -13,9 +13,7 @@ namespace Symfony\Component\Form;
 
 use Symfony\Component\Form\Exception\FormException;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
-use Symfony\Component\Form\Exception\CircularReferenceException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * A builder for creating {@link Form} instances.
@@ -44,8 +42,6 @@ class FormBuilder extends FormConfig implements \IteratorAggregate, FormBuilderI
      * @var array
      */
     private $unresolvedChildren = array();
-
-    private $currentLoadingType;
 
     /**
      * The parent of this builder
@@ -99,10 +95,8 @@ class FormBuilder extends FormConfig implements \IteratorAggregate, FormBuilderI
             throw new UnexpectedTypeException($type, 'string or Symfony\Component\Form\FormTypeInterface');
         }
 
-        if ($this->currentLoadingType && ($type instanceof FormTypeInterface ? $type->getName() : $type) == $this->currentLoadingType) {
-            throw new CircularReferenceException(is_string($type) ? $this->getFormFactory()->getType($type) : $type);
-        }
-
+        // Add to "children" to maintain order
+        $this->children[$child] = null;
         $this->unresolvedChildren[$child] = array(
             'type'    => $type,
             'options' => $options,
@@ -150,7 +144,7 @@ class FormBuilder extends FormConfig implements \IteratorAggregate, FormBuilderI
     {
         unset($this->unresolvedChildren[$name]);
 
-        if (isset($this->children[$name])) {
+        if (array_key_exists($name, $this->children)) {
             if ($this->children[$name] instanceof self) {
                 $this->children[$name]->setParent(null);
             }
@@ -208,11 +202,6 @@ class FormBuilder extends FormConfig implements \IteratorAggregate, FormBuilderI
         }
 
         return $form;
-    }
-
-    public function setCurrentLoadingType($type)
-    {
-        $this->currentLoadingType = $type;
     }
 
     /**

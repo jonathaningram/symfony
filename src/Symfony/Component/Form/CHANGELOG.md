@@ -139,3 +139,13 @@ CHANGELOG
  * deprecated `getChildren` in Form and FormBuilder in favor of `all`
  * deprecated `hasChildren` in Form and FormBuilder in favor of `count`
  * FormBuilder now implements \IteratorAggregate
+ * [BC BREAK] compound forms now always need a data mapper
+ * FormBuilder now maintains the order when explicitely adding form builders as children
+ * ChoiceType now doesn't add the empty value anymore if the choices already contain an empty element
+ * DateType, TimeType and DateTimeType now show empty values again if not required
+ * [BC BREAK] fixed rendering of errors for DateType, BirthdayType and similar ones
+ * [BC BREAK] fixed: form constraints are only validated if they belong to the validated group
+ * deprecated `bindRequest` in `Form` and replaced it by a listener to FormEvents::PRE_BIND
+ * fixed: the "data" option supersedes default values from the model
+ * changed DateType to refer to the "format" option for calculating the year and day choices instead
+   of padding them automatically

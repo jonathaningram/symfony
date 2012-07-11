@@ -19,20 +19,20 @@ use Symfony\Component\Process\Process;
 class ProcessTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * tests getter/setter
-     *
-     * @dataProvider methodProvider
+     * @expectedException \InvalidArgumentException
      */
-    public function testDefaultGetterSetter($fn)
+    public function testNegativeTimeoutFromConstructor()
     {
-        $p = new Process('php');
+        new Process('', null, null, null, -1);
+    }
 
-        $setter = 'set'.$fn;
-        $getter = 'get'.$fn;
-
-        $this->assertNull($p->$setter(array('foo')));
-
-        $this->assertSame(array('foo'), $p->$getter(array('foo')));
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testNegativeTimeoutFromSetter()
+    {
+        $p = new Process('');
+        $p->setTimeout(-1);
     }
 
     /**

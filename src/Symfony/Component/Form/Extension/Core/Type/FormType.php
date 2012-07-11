@@ -12,12 +12,12 @@
 namespace Symfony\Component\Form\Extension\Core\Type;
 
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Util\PropertyPath;
 use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormViewInterface;
+use Symfony\Component\Form\Extension\Core\EventListener\BindRequestListener;
 use Symfony\Component\Form\Extension\Core\EventListener\TrimListener;
 use Symfony\Component\Form\Extension\Core\DataMapper\PropertyPathMapper;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -42,8 +42,11 @@ class FormType extends AbstractType
             ->setMapped($options['mapped'])
             ->setByReference($options['by_reference'])
             ->setVirtual($options['virtual'])
-            ->setData($options['data'])
-            ->setDataMapper(new PropertyPathMapper())
+            ->setCompound($options['compound'])
+            ->setData(isset($options['data']) ? $options['data'] : null)
+            ->setDataLocked(isset($options['data']))
+            ->setDataMapper($options['compound'] ? new PropertyPathMapper() : null)
+            ->addEventSubscriber(new BindRequestListener())
         ;
 
         if ($options['trim']) {
@@ -112,11 +115,11 @@ class FormType extends AbstractType
             'max_length'         => $options['max_length'],
             'pattern'            => $options['pattern'],
             'size'               => null,
-            'label'              => $options['label'] ?: $this->humanize($form->getName()),
+            'label'              => $options['label'],
             'multipart'          => false,
             'attr'               => $options['attr'],
             'label_attr'         => $options['label_attr'],
-            'compound'           => $options['compound'],
+            'compound'           => $form->getConfig()->getCompound(),
             'types'              => $types,
             'translation_domain' => $translationDomain,
         ));
@@ -160,7 +163,7 @@ class FormType extends AbstractType
             }
 
             return function (FormInterface $form) {
-                return count($form) > 0 ? array() : '';
+                return $form->getConfig()->getCompound() ? array() : '';
             };
         };
 
@@ -176,7 +179,6 @@ class FormType extends AbstractType
         };
 
         $resolver->setDefaults(array(
-            'data'               => null,
             'data_class'         => $dataClass,
             'empty_data'         => $emptyData,
             'trim'               => true,
@@ -195,6 +197,12 @@ class FormType extends AbstractType
             'virtual'            => false,
             'compound'           => true,
             'translation_domain' => null,
+        ));
+
+        // If data is given, the form is locked to that data
+        // (independent of its value)
+        $resolver->setOptional(array(
+            'data',
         ));
 
         $resolver->setAllowedTypes(array(
@@ -225,10 +233,5 @@ class FormType extends AbstractType
     public function getName()
     {
         return 'form';
-    }
-
-    private function humanize($text)
-    {
-        return ucfirst(trim(strtolower(preg_replace('/[_\s]+/', ' ', $text))));
     }
 }

@@ -277,7 +277,7 @@ class MainConfiguration implements ConfigurationInterface
                 ->ifTrue(function($v) {
                     return true === $v['security'] && isset($v['pattern']) && !isset($v['request_matcher']);
                 })
-                ->then(function($firewall) use($abstractFactoryKeys) {
+                ->then(function($firewall) use ($abstractFactoryKeys) {
                     foreach ($abstractFactoryKeys as $k) {
                         if (!isset($firewall[$k]['check_path'])) {
                             continue;
@@ -303,9 +303,11 @@ class MainConfiguration implements ConfigurationInterface
                     ->example(array(
                         'memory' => array(
                             'name' => 'memory',
-                            'users' => array(
-                                'foo' => array('password' => 'foo', 'roles' => 'ROLE_USER'),
-                                'bar' => array('password' => 'bar', 'roles' => '[ROLE_USER, ROLE_ADMIN]')
+                            'memory' => array(
+                                'users' => array(
+                                    'foo' => array('password' => 'foo', 'roles' => 'ROLE_USER'),
+                                    'bar' => array('password' => 'bar', 'roles' => '[ROLE_USER, ROLE_ADMIN]')
+                                ),
                             )
                         ),
                         'entity' => array('entity' => array('class' => 'SecurityBundle:User', 'property' => 'username'))

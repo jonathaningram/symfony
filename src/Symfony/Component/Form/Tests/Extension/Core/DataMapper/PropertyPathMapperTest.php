@@ -11,7 +11,6 @@
 
 namespace Symfony\Component\Form\Tests\Extension\Core\DataMapper;
 
-use Symfony\Component\Form\Tests\FormInterface;
 use Symfony\Component\Form\Form;
 use Symfony\Component\Form\FormConfig;
 use Symfony\Component\Form\FormConfigInterface;
@@ -69,6 +68,14 @@ class PropertyPathMapperTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnValue($synchronized));
 
         return $form;
+    }
+
+    /**
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getDataMapper()
+    {
+        return $this->getMock('Symfony\Component\Form\DataMapperInterface');
     }
 
     public function testMapDataToFormsPassesObjectRefIfByReference()
@@ -181,6 +188,8 @@ class PropertyPathMapperTest extends \PHPUnit_Framework_TestCase
         $config = new FormConfig('name', '\stdClass', $this->dispatcher);
         $config->setByReference(true);
         $config->setVirtual(true);
+        $config->setCompound(true);
+        $config->setDataMapper($this->getDataMapper());
         $form = $this->getForm($config);
 
         $config = new FormConfig('engine', '\stdClass', $this->dispatcher);
@@ -350,6 +359,8 @@ class PropertyPathMapperTest extends \PHPUnit_Framework_TestCase
         $config = new FormConfig('name', '\stdClass', $this->dispatcher);
         $config->setPropertyPath($parentPath);
         $config->setVirtual(true);
+        $config->setCompound(true);
+        $config->setDataMapper($this->getDataMapper());
         $form = $this->getForm($config);
 
         $config = new FormConfig('engine', '\stdClass', $this->dispatcher);

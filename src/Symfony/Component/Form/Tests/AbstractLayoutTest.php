@@ -377,7 +377,6 @@ abstract class AbstractLayoutTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-
     public function testSingleChoiceWithPreferredAndNoSeparator()
     {
         $form = $this->factory->createNamed('name', 'choice', '&a', array(
@@ -1721,7 +1720,7 @@ abstract class AbstractLayoutTest extends \PHPUnit_Framework_TestCase
 
     public function testEmptyRootFormName()
     {
-        $form = $this->factory->createNamedBuilder('', 'form', '')
+        $form = $this->factory->createNamedBuilder('', 'form')
             ->add('child', 'text')
             ->getForm();
 

@@ -11,8 +11,6 @@
 
 namespace Symfony\Component\Security\Core\Encoder;
 
-use Symfony\Component\Security\Core\User\UserInterface;
-
 /**
  * A generic encoder factory implementation
  *
@@ -44,7 +42,7 @@ class EncoderFactory implements EncoderFactoryInterface
             return $this->encoders[$class];
         }
 
-        throw new \RuntimeException(sprintf('No encoder has been configured for account "%s".', is_object($class) ? get_class($user) : $class));
+        throw new \RuntimeException(sprintf('No encoder has been configured for account "%s".', is_object($user) ? get_class($user) : $user));
     }
 
     /**

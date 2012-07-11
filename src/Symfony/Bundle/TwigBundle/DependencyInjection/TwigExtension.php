@@ -60,6 +60,12 @@ class TwigExtension extends Extension
         $reflClass = new \ReflectionClass('Symfony\Bridge\Twig\Extension\FormExtension');
         $container->getDefinition('twig.loader')->addMethodCall('addPath', array(dirname(dirname($reflClass->getFileName())).'/Resources/views/Form'));
 
+        if (!empty($config['paths'])) {
+            foreach ($config['paths'] as $path) {
+                $container->getDefinition('twig.loader')->addMethodCall('addPath', array($path));
+            }
+        }
+
         if (!empty($config['globals'])) {
             $def = $container->getDefinition('twig');
             foreach ($config['globals'] as $key => $global) {
@@ -92,14 +98,12 @@ class TwigExtension extends Extension
 
         $this->addClassesToCompile(array(
             'Twig_Environment',
-            'Twig_ExtensionInterface',
             'Twig_Extension',
             'Twig_Extension_Core',
             'Twig_Extension_Escaper',
             'Twig_Extension_Optimizer',
             'Twig_LoaderInterface',
             'Twig_Markup',
-            'Twig_TemplateInterface',
             'Twig_Template',
         ));
     }

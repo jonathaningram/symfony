@@ -115,6 +115,7 @@ class Configuration implements ConfigurationInterface
     private function addTwigOptions(ArrayNodeDefinition $rootNode)
     {
         $rootNode
+            ->fixXmlConfig('path')
             ->children()
                 ->scalarNode('autoescape')->end()
                 ->scalarNode('base_template_class')->example('Twig_Template')->end()
@@ -124,6 +125,9 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('strict_variables')->end()
                 ->scalarNode('auto_reload')->end()
                 ->scalarNode('optimizations')->end()
+                ->arrayNode('paths')
+                    ->prototype('variable')->end()
+                ->end()
             ->end()
         ;
     }

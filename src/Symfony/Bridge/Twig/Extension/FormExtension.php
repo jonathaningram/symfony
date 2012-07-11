@@ -91,6 +91,13 @@ class FormExtension extends \Twig_Extension
         );
     }
 
+    public function getFilters()
+    {
+        return array(
+            'humanize' => new \Twig_Filter_Function(__NAMESPACE__.'\humanize'),
+        );
+    }
+
     public function isChoiceGroup($label)
     {
         return FormUtil::isChoiceGroup($label);
@@ -252,9 +259,11 @@ class FormExtension extends \Twig_Extension
             if (isset($blocks[$types[$typeIndex]])) {
                 $this->varStack[$rendering]['typeIndex'] = $typeIndex;
 
+                $context = $this->environment->mergeGlobals($this->varStack[$rendering]['variables']);
+
                 // we do not call renderBlock here to avoid too many nested level calls (XDebug limits the level to 100 by default)
                 ob_start();
-                $this->template->displayBlock($types[$typeIndex], $this->varStack[$rendering]['variables'], $blocks);
+                $this->template->displayBlock($types[$typeIndex], $context, $blocks);
                 $html = ob_get_clean();
 
                 if ($mainTemplate) {
@@ -363,4 +372,9 @@ class FormExtension extends \Twig_Extension
 
         return $blocks;
     }
+}
+
+function humanize($text)
+{
+    return ucfirst(trim(strtolower(preg_replace('/[_\s]+/', ' ', $text))));
 }

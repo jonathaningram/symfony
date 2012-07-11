@@ -28,7 +28,7 @@ class WebProfilerExtensionTest extends TestCase
      */
     private $container;
 
-    static public function assertSaneContainer(Container $container, $message = '')
+    public static function assertSaneContainer(Container $container, $message = '')
     {
         $errors = array();
         foreach ($container->getServiceIds() as $id) {
@@ -64,6 +64,9 @@ class WebProfilerExtensionTest extends TestCase
         $this->container->setParameter('kernel.cache_dir', __DIR__);
         $this->container->setParameter('kernel.debug', false);
         $this->container->setParameter('kernel.root_dir', __DIR__);
+        $this->container->register('profiler', $this->getMockClass('Symfony\\Component\\HttpKernel\\Profiler\\Profiler'))
+            ->addArgument(new Definition($this->getMockClass('Symfony\\Component\\HttpKernel\\Profiler\\ProfilerStorageInterface')));
+        $this->container->setParameter('data_collector.templates', array());
         $this->container->set('kernel', $this->kernel);
     }
 

@@ -157,19 +157,19 @@ class UrlMatcher implements UrlMatcherInterface
      */
     protected function handleRouteRequirements($pathinfo, $name, Route $route)
     {
-            // check HTTP scheme requirement
-            $scheme = $route->getRequirement('_scheme');
-            $status = $scheme && $scheme !== $this->context->getScheme() ? self::REQUIREMENT_MISMATCH : self::REQUIREMENT_MATCH;
+        // check HTTP scheme requirement
+        $scheme = $route->getRequirement('_scheme');
+        $status = $scheme && $scheme !== $this->context->getScheme() ? self::REQUIREMENT_MISMATCH : self::REQUIREMENT_MATCH;
 
-            return array($status, null);
+        return array($status, null);
     }
 
     /**
      * Get merged default parameters.
-     * 
+     *
      * @param array $params   The parameters
      * @param array $defaults The defaults
-     * 
+     *
      * @return array Merged default parameters
      */
     protected function mergeDefaults($params, $defaults)

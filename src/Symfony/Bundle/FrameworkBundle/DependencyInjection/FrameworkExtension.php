@@ -11,7 +11,6 @@
 
 namespace Symfony\Bundle\FrameworkBundle\DependencyInjection;
 
-use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\Reference;
@@ -60,9 +59,6 @@ class FrameworkExtension extends Extension
         $configuration = $this->getConfiguration($configs, $container);
         $config = $this->processConfiguration($configuration, $configs);
 
-        if (isset($config['charset'])) {
-            $container->setParameter('kernel.charset', $config['charset']);
-        }
         $container->setParameter('kernel.secret', $config['secret']);
 
         $container->setParameter('kernel.trust_proxy_headers', $config['trust_proxy_headers']);
@@ -119,17 +115,12 @@ class FrameworkExtension extends Extension
 
             'Symfony\\Component\\Config\\FileLocator',
 
-            'Symfony\\Component\\EventDispatcher\\EventDispatcherInterface',
-            'Symfony\\Component\\EventDispatcher\\EventDispatcher',
             'Symfony\\Component\\EventDispatcher\\Event',
-            'Symfony\\Component\\EventDispatcher\\EventSubscriberInterface',
             'Symfony\\Component\\EventDispatcher\\ContainerAwareEventDispatcher',
 
-            'Symfony\\Component\\HttpKernel\\HttpKernel',
             'Symfony\\Component\\HttpKernel\\EventListener\\ResponseListener',
             'Symfony\\Component\\HttpKernel\\EventListener\\RouterListener',
             'Symfony\\Component\\HttpKernel\\Controller\\ControllerResolver',
-            'Symfony\\Component\\HttpKernel\\Controller\\ControllerResolverInterface',
             'Symfony\\Component\\HttpKernel\\Event\\KernelEvent',
             'Symfony\\Component\\HttpKernel\\Event\\FilterControllerEvent',
             'Symfony\\Component\\HttpKernel\\Event\\FilterResponseEvent',
@@ -143,7 +134,6 @@ class FrameworkExtension extends Extension
             'Symfony\\Bundle\\FrameworkBundle\\Controller\\ControllerResolver',
             // Cannot be included because annotations will parse the big compiled class file
             // 'Symfony\\Bundle\\FrameworkBundle\\Controller\\Controller',
-            'Symfony\\Bundle\\FrameworkBundle\\HttpKernel',
         ));
     }
 
@@ -266,13 +256,8 @@ class FrameworkExtension extends Extension
         $container->setParameter('request_listener.https_port', $config['https_port']);
 
         $this->addClassesToCompile(array(
-            'Symfony\\Component\\Routing\\Matcher\\UrlMatcherInterface',
-            'Symfony\\Component\\Routing\\Generator\\UrlGeneratorInterface',
-            'Symfony\\Component\\Routing\\RouterInterface',
             'Symfony\\Component\\Routing\\Matcher\\UrlMatcher',
             'Symfony\\Component\\Routing\\Generator\\UrlGenerator',
-            'Symfony\\Component\\Routing\\Matcher\\RedirectableUrlMatcherInterface',
-            'Symfony\\Component\\Routing\\RequestContextAwareInterface',
             'Symfony\\Component\\Routing\\RequestContext',
             'Symfony\\Component\\Routing\\Router',
             'Symfony\\Bundle\\FrameworkBundle\\Routing\\RedirectableUrlMatcher',
@@ -291,13 +276,10 @@ class FrameworkExtension extends Extension
     {
         $loader->load('session.xml');
 
-        // session
-        $container->getDefinition('session_listener')->addArgument($config['auto_start']);
-
         // session storage
         $container->setAlias('session.storage', $config['storage_id']);
         $options = array();
-        foreach (array('name', 'cookie_lifetime', 'cookie_path', 'cookie_domain', 'cookie_secure', 'cookie_httponly', 'auto_start', 'gc_maxlifetime', 'gc_probability', 'gc_divisor') as $key) {
+        foreach (array('name', 'cookie_lifetime', 'cookie_path', 'cookie_domain', 'cookie_secure', 'cookie_httponly', 'gc_maxlifetime', 'gc_probability', 'gc_divisor') as $key) {
             if (isset($config[$key])) {
                 $options[$key] = $config[$key];
             }
@@ -319,7 +301,6 @@ class FrameworkExtension extends Extension
 
         $this->addClassesToCompile(array(
             'Symfony\\Bundle\\FrameworkBundle\\EventListener\\SessionListener',
-            'Symfony\\Component\\HttpFoundation\\Session\\Storage\\SessionStorageInterface',
             'Symfony\\Component\\HttpFoundation\\Session\\Storage\\NativeSessionStorage',
             'Symfony\\Component\\HttpFoundation\\Session\\Storage\\Handler\\FileSessionHandler',
             'Symfony\\Component\\HttpFoundation\\Session\\Storage\\Proxy\\AbstractProxy',
@@ -411,14 +392,6 @@ class FrameworkExtension extends Extension
 
         $this->addClassesToCompile(array(
             'Symfony\\Bundle\\FrameworkBundle\\Templating\\GlobalVariables',
-            'Symfony\\Bundle\\FrameworkBundle\\Templating\\EngineInterface',
-            'Symfony\\Component\\Templating\\StreamingEngineInterface',
-            'Symfony\\Component\\Templating\\TemplateNameParserInterface',
-            'Symfony\\Component\\Templating\\TemplateNameParser',
-            'Symfony\\Component\\Templating\\EngineInterface',
-            'Symfony\\Component\\Config\\FileLocatorInterface',
-            'Symfony\\Component\\Templating\\TemplateReferenceInterface',
-            'Symfony\\Component\\Templating\\TemplateReference',
             'Symfony\\Bundle\\FrameworkBundle\\Templating\\TemplateReference',
             'Symfony\\Bundle\\FrameworkBundle\\Templating\\TemplateNameParser',
             $container->findDefinition('templating.locator')->getClass(),
@@ -426,9 +399,6 @@ class FrameworkExtension extends Extension
 
         if (in_array('php', $config['engines'], true)) {
             $this->addClassesToCompile(array(
-                'Symfony\\Component\\Templating\\PhpEngine',
-                'Symfony\\Component\\Templating\\Loader\\LoaderInterface',
-                'Symfony\\Component\\Templating\\Storage\\Storage',
                 'Symfony\\Component\\Templating\\Storage\\FileStorage',
                 'Symfony\\Bundle\\FrameworkBundle\\Templating\\PhpEngine',
                 'Symfony\\Bundle\\FrameworkBundle\\Templating\\Loader\\FilesystemLoader',

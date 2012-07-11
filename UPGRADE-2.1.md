@@ -65,6 +65,52 @@
 
     After: `$request->getLocale()`
 
+### HttpFoundation
+
+ * The current locale for the user is not stored anymore in the session
+
+   You can simulate the old behavior by registering a listener that looks like the following, if the paramater which handle locale value in the request is `_locale`:
+
+   ```
+   namespace XXX;
+
+   use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+   use Symfony\Component\HttpKernel\KernelEvents;
+   use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+   class LocaleListener implements EventSubscriberInterface
+   {
+       private $defaultLocale;
+
+       public function __construct($defaultLocale = 'en')
+       {
+           $this->defaultLocale = $defaultLocale;
+       }
+
+       public function onKernelRequest(GetResponseEvent $event)
+       {
+           $request = $event->getRequest();
+           if (!$request->hasPreviousSession()) {
+               return;
+           }
+
+           if ($locale = $request->attributes->get('_locale')) {
+               $request->getSession()->set('_locale', $locale);
+           } else {
+               $request->setDefaultLocale($request->getSession()->get('_locale', $this->defaultLocale));
+           }
+       }
+
+       static public function getSubscribedEvents()
+       {
+           return array(
+               // must be registered before the default Locale listener
+               KernelEvents::REQUEST => array(array('onKernelRequest', 17)),
+           );
+       }
+   }
+   ```
+
 ### Security
 
   * `Symfony\Component\Security\Core\User\UserInterface::equals()` has moved to
@@ -88,7 +134,7 @@
         public function equals(UserInterface $user) { /* ... */ }
         // ...
     }
-```
+    ```
 
     After:
 
@@ -100,6 +146,7 @@
         // ...
     }
     ```
+
   * The custom factories for the firewall configuration are now
     registered during the build method of bundles instead of being registered
     by the end-user. This means that you will you need to remove the 'factories'
@@ -144,7 +191,7 @@
     implementations of this interface to reflect this change.
 
   * The `UserPassword` constraint has moved from the Security Bundle to the Security Component:
-    
+
      Before:
 
      ```
@@ -192,6 +239,40 @@
     public function buildView(FormViewInterface $view, FormInterface $form, array $options)
     public function finishView(FormViewInterface $view, FormInterface $form, array $options)
     ```
+
+  * If you previously inherited from `FieldType`, you should now inherit from
+    `FormType`. You should also set the option `compound` to `false` if your field
+    is not supposed to contain child fields.
+
+    `FieldType` was deprecated and will be removed in Symfony 2.3.
+
+    Before:
+
+    ```
+    public function getParent(array $options)
+    {
+        return 'field';
+    }
+    ```
+
+    After:
+
+    ```
+    public function getParent()
+    {
+        return 'form';
+    }
+
+    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    {
+        $resolver->setDefaults(array(
+            'compound' => false,
+        ));
+    }
+    ```
+
+    The changed signature of `getParent()` is explained in the next step.
+    The new method `setDefaultOptions` is described in the section "Deprecations".
 
   * No options are passed to `getParent()` of `FormTypeInterface` anymore. If
     you previously dynamically inherited from `FormType` or `FieldType`, you can now
@@ -460,6 +541,22 @@
     {% endfor %}
     ```
 
+  * Creation of default labels has been moved to the view layer. You will need
+    to incorporate this logic into any custom `form_label` templates to
+    accommodate those cases when the `label` option has not been explicitly
+    set.
+
+    ```
+    {% block form_label %}
+        {% if label is empty %}
+            {% set label = name|humanize %}
+        {% endif %}
+
+        {# ... #}
+
+    {% endblock %}
+    ````
+
 #### Other BC Breaks
 
   * The order of the first two arguments of the methods `createNamed` and
@@ -538,6 +635,20 @@
     removed or made private. Instead of the first two, you can now use
     `getChoices()` and `getChoicesByValues()`. For the latter two, no
     replacement exists.
+
+  * HTML attributes are now passed in the `label_attr` variable for the `form_label` function.
+
+    Before:
+
+    ```
+    {{ form_label(form.name, 'Your Name', { 'attr': {'class': 'foo'} }) }}
+    ```
+
+    After:
+
+    ```
+    {{ form_label(form.name, 'Your Name', { 'label_attr': {'class': 'foo'} }) }}
+    ```
 
   * `EntitiesToArrayTransformer` and `EntityToIdTransformer` were removed.
     The former was replaced by `CollectionToArrayTransformer` in combination
@@ -764,6 +875,7 @@
       * `getClientData`
       * `getChildren`
       * `hasChildren`
+      * `bindRequest`
 
     Before:
 
@@ -795,6 +907,20 @@
     if (count($form) > 0) {
     ```
 
+    Instead of `bindRequest`, you should now simply call `bind`:
+
+    Before:
+
+    ```
+    $form->bindRequest($request);
+    ```
+
+    After:
+
+    ```
+    $form->bind($request);
+    ```
+
   * The option "validation_constraint" was deprecated and will be removed
     in Symfony 2.3. You should use the option "constraints" instead,
     where you can pass one or more constraints for a form.
@@ -823,6 +949,24 @@
             new NotBlank(),
             new MinLength(3),
         ),
+    ));
+    ```
+
+    Be aware that constraints will now only be validated if they belong
+    to the validated group! So if you validate a form in group "Custom"
+    and previously did:
+
+    ```
+    $builder->add('name', 'text', array(
+        'validation_constraint' => new NotBlank(),
+    ));
+    ```
+
+    Then you need to add the constraint to the group "Custom" now:
+
+    ```
+    $builder->add('name', 'text', array(
+        'constraints' => new NotBlank(array('groups' => 'Custom')),
     ));
     ```
 
@@ -1008,7 +1152,7 @@
 ### Serializer
 
  * The key names created by the  `GetSetMethodNormalizer` have changed from
-    from all lowercased to camelCased (e.g. `mypropertyvalue` to `myPropertyValue`).
+   all lowercased to camelCased (e.g. `mypropertyvalue` to `myPropertyValue`).
 
  * The `item` element is now converted to an array when deserializing XML.
 
