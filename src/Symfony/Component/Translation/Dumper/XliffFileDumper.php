@@ -58,4 +58,3 @@ class XliffFileDumper extends FileDumper
         return 'xlf';
     }
 }
-
