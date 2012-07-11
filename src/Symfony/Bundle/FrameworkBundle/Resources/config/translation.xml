@@ -59,7 +59,7 @@
         </service>
 
         <service id="translation.loader.xliff" class="%translation.loader.xliff.class%">
-            <tag name="translation.loader" alias="xliff" />
+            <tag name="translation.loader" alias="xlf" legacy-alias="xliff" />
         </service>
 
         <service id="translation.loader.po" class="%translation.loader.po.class%">
@@ -93,6 +93,7 @@
         <service id="translation.dumper.php" class="%translation.dumper.php.class%">
             <tag name="translation.dumper" alias="php" />
         </service>
+
         <service id="translation.dumper.xliff" class="%translation.dumper.xliff.class%">
             <tag name="translation.dumper" alias="xlf" />
         </service>
@@ -136,3 +137,4 @@
         <service id="translation.writer" class="%translation.writer.class%"/>
     </services>
 </container>
+
