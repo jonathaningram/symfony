@@ -189,15 +189,9 @@ abstract class FrameworkExtensionTest extends TestCase
             '->registerTranslatorConfiguration() finds Validator translation resources'
         );
         $this->assertContains(
-<<<<<<< HEAD
-            realpath(__DIR__.'/../../Resources/translations/validators.fr.xliff'),
-            array_map(function($resource) use ($resources) { return realpath($resource[1]); }, $resources),
-            '->registerTranslatorConfiguration() finds FrameworkExtension translation resources'
-=======
             'Symfony/Component/Form/Resources/translations/validators.en.xlf',
             $files,
             '->registerTranslatorConfiguration() finds Form translation resources'
->>>>>>> upstream/master
         );
 
         $calls = $container->getDefinition('translator.default')->getMethodCalls();
