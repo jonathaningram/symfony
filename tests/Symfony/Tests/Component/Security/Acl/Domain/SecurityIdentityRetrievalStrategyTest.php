@@ -116,7 +116,6 @@ class SecurityIdentityRetrievalStrategyTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnValue($username))
         ;
 
-
         return $account;
     }
 
@@ -148,7 +147,7 @@ class SecurityIdentityRetrievalStrategyTest extends \PHPUnit_Framework_TestCase
                 ->expects($this->never())
                 ->method('isRememberMe')
             ;
-        } else if ('rememberMe' === $authenticationStatus) {
+        } elseif ('rememberMe' === $authenticationStatus) {
             $trustResolver
                 ->expects($this->once())
                 ->method('isFullFledged')
@@ -176,7 +175,6 @@ class SecurityIdentityRetrievalStrategyTest extends \PHPUnit_Framework_TestCase
                 ->will($this->returnValue(false))
             ;
         }
-
 
         return new SecurityIdentityRetrievalStrategy($roleHierarchy, $trustResolver);
     }

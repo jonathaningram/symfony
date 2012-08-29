@@ -17,11 +17,11 @@ use Symfony\Component\Console\Input\InputOption;
 
 class InputDefinitionTest extends \PHPUnit_Framework_TestCase
 {
-    static protected $fixtures;
+    protected static $fixtures;
 
     protected $foo, $bar, $foo1, $foo2;
 
-    static public function setUpBeforeClass()
+    public static function setUpBeforeClass()
     {
         self::$fixtures = __DIR__.'/../Fixtures/';
     }
@@ -96,7 +96,6 @@ class InputDefinitionTest extends \PHPUnit_Framework_TestCase
             $this->assertInstanceOf('\Exception', $e, '->addArgument() throws a Exception if there is an array parameter already registered');
             $this->assertEquals('Cannot add an argument after an array argument.', $e->getMessage());
         }
-
 
         // cannot add a required argument after an optional one
         $definition = new InputDefinition();
@@ -321,10 +320,12 @@ class InputDefinitionTest extends \PHPUnit_Framework_TestCase
     public function testAsText()
     {
         $definition = new InputDefinition(array(
-            new InputArgument('foo', InputArgument::OPTIONAL, 'The bar argument'),
-            new InputArgument('bar', InputArgument::OPTIONAL | InputArgument::IS_ARRAY, 'The foo argument', array('bar')),
+            new InputArgument('foo', InputArgument::OPTIONAL, 'The foo argument'),
+            new InputArgument('baz', InputArgument::OPTIONAL, 'The baz argument', true),
+            new InputArgument('bar', InputArgument::OPTIONAL | InputArgument::IS_ARRAY, 'The bar argument', array('bar')),
             new InputOption('foo', 'f', InputOption::VALUE_REQUIRED, 'The foo option'),
-            new InputOption('bar', 'b', InputOption::VALUE_OPTIONAL, 'The foo option', 'bar'),
+            new InputOption('baz', null, InputOption::VALUE_OPTIONAL, 'The baz option', false),
+            new InputOption('bar', 'b', InputOption::VALUE_OPTIONAL, 'The bar option', 'bar'),
         ));
         $this->assertStringEqualsFile(self::$fixtures.'/definition_astext.txt', $definition->asText(), '->asText() returns a textual representation of the InputDefinition');
     }
@@ -332,10 +333,12 @@ class InputDefinitionTest extends \PHPUnit_Framework_TestCase
     public function testAsXml()
     {
         $definition = new InputDefinition(array(
-            new InputArgument('foo', InputArgument::OPTIONAL, 'The bar argument'),
-            new InputArgument('bar', InputArgument::OPTIONAL | InputArgument::IS_ARRAY, 'The foo argument', array('bar')),
+            new InputArgument('foo', InputArgument::OPTIONAL, 'The foo argument'),
+            new InputArgument('baz', InputArgument::OPTIONAL, 'The baz argument', true),
+            new InputArgument('bar', InputArgument::OPTIONAL | InputArgument::IS_ARRAY, 'The bar argument', array('bar')),
             new InputOption('foo', 'f', InputOption::VALUE_REQUIRED, 'The foo option'),
-            new InputOption('bar', 'b', InputOption::VALUE_OPTIONAL, 'The foo option', 'bar'),
+            new InputOption('baz', null, InputOption::VALUE_OPTIONAL, 'The baz option', false),
+            new InputOption('bar', 'b', InputOption::VALUE_OPTIONAL, 'The bar option', 'bar'),
         ));
         $this->assertXmlStringEqualsXmlFile(self::$fixtures.'/definition_asxml.txt', $definition->asXml(), '->asText() returns a textual representation of the InputDefinition');
     }

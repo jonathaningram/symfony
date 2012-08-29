@@ -22,8 +22,17 @@ namespace Symfony\Component\DomCrawler\Field;
  */
 class ChoiceFormField extends FormField
 {
+    /**
+     * @var string
+     */
     private $type;
+    /**
+     * @var Boolean
+     */
     private $multiple;
+    /**
+     * @var array
+     */
     private $options;
 
     /**
@@ -43,8 +52,8 @@ class ChoiceFormField extends FormField
 
     /**
      * Check if the current selected option is disabled
-     * 
-     * @return bool
+     *
+     * @return Boolean
      */
     public function isDisabled()
     {
@@ -56,13 +65,11 @@ class ChoiceFormField extends FormField
 
         return false;
     }
-    
+
     /**
      * Sets the value of the field.
      *
      * @param string $value The value of the field
-     *
-     * @throws \InvalidArgumentException When value type provided is not correct
      *
      * @api
      */
@@ -74,7 +81,7 @@ class ChoiceFormField extends FormField
     /**
      * Ticks a checkbox.
      *
-     * @throws \InvalidArgumentException When value type provided is not correct
+     * @throws \LogicException When the type provided is not correct
      *
      * @api
      */
@@ -90,7 +97,7 @@ class ChoiceFormField extends FormField
     /**
      * Ticks a checkbox.
      *
-     * @throws \InvalidArgumentException When value type provided is not correct
+     * @throws \LogicException When the type provided is not correct
      *
      * @api
      */
@@ -248,8 +255,8 @@ class ChoiceFormField extends FormField
     /**
      * Returns option value with associated disabled flag
      *
-     * @param type $node
-     * 
+     * @param \DOMNode $node
+     *
      * @return array
      */
     private function buildOptionValue($node)
@@ -259,7 +266,7 @@ class ChoiceFormField extends FormField
         $defaultValue = (isset($node->nodeValue) && !empty($node->nodeValue)) ? $node->nodeValue : '1';
         $option['value'] = $node->hasAttribute('value') ? $node->getAttribute('value') : $defaultValue;
         $option['disabled'] = ($node->hasAttribute('disabled') && $node->getAttribute('disabled') == 'disabled');
-            
+
         return $option;
     }
 
@@ -268,7 +275,7 @@ class ChoiceFormField extends FormField
      *
      * @param string $optionValue
      * @param array  $options
-     * 
+     *
      * @return bool
      */
     public function containsOption($optionValue, $options)

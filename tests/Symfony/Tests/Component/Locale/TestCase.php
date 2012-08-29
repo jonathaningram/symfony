@@ -44,6 +44,25 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         }
     }
 
+    protected function skipIfNot32Bit()
+    {
+        if (!$this->is32Bit()) {
+            $this->markTestSkipped('PHP must be compiled in 32 bit mode to run this test');
+        }
+    }
+
+    protected function skipIfNot64Bit()
+    {
+        if (!$this->is64Bit()) {
+            $this->markTestSkipped('PHP must be compiled in 64 bit mode to run this test');
+        }
+    }
+
+    protected function isGreaterOrEqualThanPhpVersion($version)
+    {
+        return version_compare(\PHP_VERSION, $version, '>=');
+    }
+
     protected function isGreaterOrEqualThanIcuVersion($version)
     {
         $version = $this->normalizeIcuVersion($version);

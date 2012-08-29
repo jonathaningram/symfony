@@ -183,8 +183,7 @@ class AclProviderBenchmarkTest extends \PHPUnit_Framework_TestCase
 
             do {
                 $sid = $this->chooseSid();
-            }
-            while (array_key_exists($sid, $sids) && in_array($fieldName, $sids[$sid], true));
+            } while (array_key_exists($sid, $sids) && in_array($fieldName, $sids[$sid], true));
 
             $fieldOrder[$fieldName] = array_key_exists($fieldName, $fieldOrder) ? $fieldOrder[$fieldName]+1 : 0;
             if (!isset($sids[$sid])) {
@@ -195,7 +194,7 @@ class AclProviderBenchmarkTest extends \PHPUnit_Framework_TestCase
             $strategy = rand(0, 2);
             if ($strategy === 0) {
                 $strategy = PermissionGrantingStrategy::ALL;
-            } else if ($strategy === 1) {
+            } elseif ($strategy === 1) {
                 $strategy = PermissionGrantingStrategy::ANY;
             } else {
                 $strategy = PermissionGrantingStrategy::EQUAL;
