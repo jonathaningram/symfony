@@ -153,7 +153,7 @@ class HttpCacheTestCase extends \PHPUnit_Framework_TestCase
         $this->catch = $catch;
     }
 
-    static public function clearDirectory($directory)
+    public static function clearDirectory($directory)
     {
         if (!is_dir($directory)) {
             return;
@@ -161,11 +161,10 @@ class HttpCacheTestCase extends \PHPUnit_Framework_TestCase
 
         $fp = opendir($directory);
         while (false !== $file = readdir($fp)) {
-            if (!in_array($file, array('.', '..')))
-            {
+            if (!in_array($file, array('.', '..'))) {
                 if (is_link($directory.'/'.$file)) {
                     unlink($directory.'/'.$file);
-                } else if (is_dir($directory.'/'.$file)) {
+                } elseif (is_dir($directory.'/'.$file)) {
                     self::clearDirectory($directory.'/'.$file);
                     rmdir($directory.'/'.$file);
                 } else {

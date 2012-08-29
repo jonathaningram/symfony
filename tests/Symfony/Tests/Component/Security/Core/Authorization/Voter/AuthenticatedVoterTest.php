@@ -14,7 +14,6 @@ namespace Symfony\Tests\Component\Security\Core\Authorization\Voter;
 use Symfony\Component\Security\Core\Authentication\AuthenticationTrustResolver;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
-use Symfony\Component\Security\Core\Role\Role;
 
 class AuthenticatedVoterTest extends \PHPUnit_Framework_TestCase
 {
@@ -70,7 +69,7 @@ class AuthenticatedVoterTest extends \PHPUnit_Framework_TestCase
     {
         if ('fully' === $authenticated) {
             return $this->getMock('Symfony\Component\Security\Core\Authentication\Token\TokenInterface');
-        } else if ('remembered' === $authenticated) {
+        } elseif ('remembered' === $authenticated) {
             return $this->getMock('Symfony\Component\Security\Core\Authentication\Token\RememberMeToken', array('setPersistent'), array(), '', false);
         } else {
             return $this->getMock('Symfony\Component\Security\Core\Authentication\Token\AnonymousToken', null, array('', ''));

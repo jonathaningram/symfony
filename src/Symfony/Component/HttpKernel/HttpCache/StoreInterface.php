@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- *
+ * Interface implemented by HTTP cache stores.
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
@@ -31,7 +31,7 @@ interface StoreInterface
      *
      * @return Response|null A Response instance, or null if no cache entry was found
      */
-    function lookup(Request $request);
+    public function lookup(Request $request);
 
     /**
      * Writes a cache entry to the store for the given Request and Response.
@@ -44,14 +44,14 @@ interface StoreInterface
      *
      * @return string The key under which the response is stored
      */
-    function write(Request $request, Response $response);
+    public function write(Request $request, Response $response);
 
     /**
      * Invalidates all cache entries that match the request.
      *
      * @param Request $request A Request instance
      */
-    function invalidate(Request $request);
+    public function invalidate(Request $request);
 
     /**
      * Locks the cache for a given Request.
@@ -60,7 +60,7 @@ interface StoreInterface
      *
      * @return Boolean|string true if the lock is acquired, the path to the current lock otherwise
      */
-    function lock(Request $request);
+    public function lock(Request $request);
 
     /**
      * Releases the lock for the given Request.
@@ -69,7 +69,7 @@ interface StoreInterface
      *
      * @return Boolean False if the lock file does not exist or cannot be unlocked, true otherwise
      */
-    function unlock(Request $request);
+    public function unlock(Request $request);
 
     /**
      * Purges data for the given URL.
@@ -78,10 +78,10 @@ interface StoreInterface
      *
      * @return Boolean true if the URL exists and has been purged, false otherwise
      */
-    function purge($url);
+    public function purge($url);
 
     /**
      * Cleanups storage.
      */
-    function cleanup();
+    public function cleanup();
 }

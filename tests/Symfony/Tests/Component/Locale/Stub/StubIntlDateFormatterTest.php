@@ -53,49 +53,69 @@ class StubIntlDateFormatterTest extends LocaleTestCase
         $this->assertNull($formatter->getTimeZoneId());
     }
 
+    public function testFormatWithUnsupportedTimestampArgument()
+    {
+        $formatter = $this->createStubFormatter();
+
+        $localtime = array(
+            'tm_sec'   => 59,
+            'tm_min'   => 3,
+            'tm_hour'  => 15,
+            'tm_mday'  => 15,
+            'tm_mon'   => 3,
+            'tm_year'  => 112,
+            'tm_wday'  => 0,
+            'tm_yday'  => 105,
+            'tm_isdst' => 0
+        );
+
+        try {
+            $formatter->format($localtime);
+        } catch (\Exception $e) {
+            $this->assertInstanceOf('Symfony\Component\Locale\Exception\MethodArgumentValueNotImplementedException', $e);
+
+            if ($this->isGreaterOrEqualThanPhpVersion('5.3.4')) {
+                $this->assertStringEndsWith('Only integer unix timestamps and DateTime objects are supported.  Please install the \'intl\' extension for full localization capabilities.', $e->getMessage());
+            } else {
+                $this->assertStringEndsWith('Only integer unix timestamps are supported.  Please install the \'intl\' extension for full localization capabilities.', $e->getMessage());
+            }
+        }
+    }
+
     /**
      * @dataProvider formatProvider
      */
-    public function testFormatStub($pattern, $timestamp, $expected, $errorCode = 0, $errorMessage = 'U_ZERO_ERROR')
+    public function testFormatStub($pattern, $timestamp, $expected)
     {
+        $errorCode = StubIntl::U_ZERO_ERROR;
+        $errorMessage = 'U_ZERO_ERROR';
+
         $formatter = $this->createStubFormatter($pattern);
         $this->assertSame($expected, $formatter->format($timestamp));
         $this->assertSame($errorMessage, StubIntl::getErrorMessage());
         $this->assertSame($errorCode, StubIntl::getErrorCode());
-        $this->assertSame($errorCode != 0, StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertFalse(StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertSame($errorMessage, $formatter->getErrorMessage());
+        $this->assertSame($errorCode, $formatter->getErrorCode());
+        $this->assertFalse(StubIntl::isFailure($formatter->getErrorCode()));
     }
 
     /**
      * @dataProvider formatProvider
      */
-    public function testFormatIntl($pattern, $timestamp, $expected, $errorCode = 0, $errorMessage = 'U_ZERO_ERROR')
-    {
-        $this->skipIfIntlExtensionIsNotLoaded();
-        $this->skipIfICUVersionIsTooOld();
-        $formatter = $this->createIntlFormatter($pattern);
-        $this->assertSame($expected, $formatter->format($timestamp));
-        $this->assertSame($errorMessage, intl_get_error_message());
-        $this->assertSame($errorCode, intl_get_error_code());
-        $this->assertSame($errorCode != 0, intl_is_failure(intl_get_error_code()));
-    }
-
-    /**
-     * @dataProvider formatErrorProvider
-     */
-    public function testFormatErrorIntl($pattern, $timestamp, $expected, $errorCode = 0, $errorMessage = 'U_ZERO_ERROR')
+    public function testFormatIntl($pattern, $timestamp, $expected)
     {
         $this->skipIfIntlExtensionIsNotLoaded();
         $this->skipIfICUVersionIsTooOld();
 
-        if (version_compare(PHP_VERSION, '5.3.3') > 0) {
-            $this->markTestSkipped('The intl error messages were change in PHP 5.3.3.');
-        }
+        $errorCode = StubIntl::U_ZERO_ERROR;
+        $errorMessage = 'U_ZERO_ERROR';
 
         $formatter = $this->createIntlFormatter($pattern);
         $this->assertSame($expected, $formatter->format($timestamp));
         $this->assertSame($errorMessage, intl_get_error_message());
         $this->assertSame($errorCode, intl_get_error_code());
-        $this->assertSame($errorCode != 0, intl_is_failure(intl_get_error_code()));
+        $this->assertFalse(intl_is_failure(intl_get_error_code()));
     }
 
     public function formatProvider()
@@ -276,16 +296,67 @@ class StubIntlDateFormatterTest extends LocaleTestCase
             array('zzzzz', 0, 'GMT+00:00'),
         );
 
+        // As of PHP 5.3.4, IntlDateFormatter::format() accepts DateTime instances
+        if ($this->isGreaterOrEqualThanPhpVersion('5.3.4')) {
+            $dateTime = new \DateTime('@0');
+
+            /* general, DateTime */
+            $formatData[] = array('y-M-d', $dateTime, '1970-1-1');
+            $formatData[] = array("yyyy.MM.dd 'at' HH:mm:ss zzz", $dateTime, '1970.01.01 at 00:00:00 GMT+00:00');
+            $formatData[] = array("EEE, MMM d, ''yy", $dateTime, "Thu, Jan 1, '70");
+            $formatData[] = array('h:mm a', $dateTime, '12:00 AM');
+            $formatData[] = array('K:mm a, z', $dateTime, '0:00 AM, GMT+00:00');
+            $formatData[] = array('yyyyy.MMMM.dd hh:mm aaa', $dateTime, '01970.January.01 12:00 AM');
+        }
+
         return $formatData;
+    }
+
+    /**
+     * @dataProvider formatErrorProvider
+     */
+    public function testFormatIllegalArgumentErrorStub($pattern, $timestamp, $errorMessage)
+    {
+        $errorCode = StubIntl::U_ILLEGAL_ARGUMENT_ERROR;
+
+        $formatter = $this->createStubFormatter($pattern);
+        $this->assertFalse($formatter->format($timestamp));
+        $this->assertSame($errorMessage, StubIntl::getErrorMessage());
+        $this->assertSame($errorCode, StubIntl::getErrorCode());
+        $this->assertTrue(StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertSame($errorMessage, $formatter->getErrorMessage());
+        $this->assertSame($errorCode, $formatter->getErrorCode());
+        $this->assertTrue(StubIntl::isFailure($formatter->getErrorCode()));
+    }
+
+    /**
+     * @dataProvider formatErrorProvider
+     */
+    public function testFormatIllegalArgumentErrorIntl($pattern, $timestamp, $errorMessage)
+    {
+        $this->skipIfIntlExtensionIsNotLoaded();
+        $this->skipIfICUVersionIsTooOld();
+
+        $errorCode = StubIntl::U_ILLEGAL_ARGUMENT_ERROR;
+
+        $formatter = $this->createIntlFormatter($pattern);
+        $this->assertFalse($formatter->format($timestamp));
+        $this->assertSame($errorMessage, intl_get_error_message());
+        $this->assertSame($errorCode, intl_get_error_code());
+        $this->assertTrue(intl_is_failure(intl_get_error_code()));
     }
 
     public function formatErrorProvider()
     {
-        /* errors */
+        $message = 'datefmt_format: takes either an array  or an integer timestamp value : U_ILLEGAL_ARGUMENT_ERROR';
+
+        if ($this->isGreaterOrEqualThanPhpVersion('5.3.4')) {
+            $message = 'datefmt_format: takes either an array or an integer timestamp value or a DateTime object: U_ILLEGAL_ARGUMENT_ERROR';
+        }
 
         return array(
-            array('y-M-d', '0', false, 1, 'datefmt_format: takes either an array  or an integer timestamp value : U_ILLEGAL_ARGUMENT_ERROR'),
-            array('y-M-d', 'foobar', false, 1, 'datefmt_format: takes either an array  or an integer timestamp value : U_ILLEGAL_ARGUMENT_ERROR'),
+            array('y-M-d', '0', $message),
+            array('y-M-d', 'foobar', $message),
         );
     }
 
@@ -392,6 +463,7 @@ class StubIntlDateFormatterTest extends LocaleTestCase
     {
         $this->skipIfIntlExtensionIsNotLoaded();
         $this->skipIfICUVersionIsTooOld();
+
         $formatter = new \IntlDateFormatter('en', StubIntlDateFormatter::MEDIUM, StubIntlDateFormatter::SHORT);
         $formatter->setPattern('yyyy-MM-dd HH:mm:ss');
 
@@ -399,6 +471,54 @@ class StubIntlDateFormatterTest extends LocaleTestCase
             $this->createDateTime(0)->format('Y-m-d H:i:s'),
             $formatter->format(0)
         );
+    }
+
+    public function testFormatWithDefaultTimezoneStubShouldUseTheTzEnvironmentVariableWhenAvailable()
+    {
+        $tz = getenv('TZ');
+        putenv('TZ=Europe/London');
+
+        $formatter = new StubIntlDateFormatter('en', StubIntlDateFormatter::MEDIUM, StubIntlDateFormatter::SHORT);
+        $formatter->setPattern('yyyy-MM-dd HH:mm:ss');
+
+        $this->assertEquals(
+            $this->createDateTime(0)->format('Y-m-d H:i:s'),
+            $formatter->format(0)
+        );
+
+        $this->assertEquals('Europe/London', getenv('TZ'));
+
+        // Restores TZ.
+        putenv('TZ='.$tz);
+    }
+
+    /**
+     * It seems IntlDateFormatter caches the timezone id when not explicitely set via constructor or by the
+     * setTimeZoneId() method. Since testFormatWithDefaultTimezoneIntl() runs using the default environment
+     * time zone, this test would use it too if not running in a separated process.
+     *
+     * @runInSeparateProcess
+     */
+    public function testFormatWithDefaultTimezoneIntlShouldUseTheTzEnvironmentVariableWhenAvailable()
+    {
+        $this->skipIfIntlExtensionIsNotLoaded();
+        $this->skipIfICUVersionIsTooOld();
+
+        $tz = getenv('TZ');
+        putenv('TZ=Europe/Paris');
+
+        $formatter = new \IntlDateFormatter('en', StubIntlDateFormatter::MEDIUM, StubIntlDateFormatter::SHORT);
+        $formatter->setPattern('yyyy-MM-dd HH:mm:ss');
+
+        $this->assertEquals('Europe/Paris', getenv('TZ'));
+
+        $this->assertEquals(
+            $this->createDateTime(0)->format('Y-m-d H:i:s'),
+            $formatter->format(0)
+        );
+
+        // Restores TZ.
+        putenv('TZ='.$tz);
     }
 
     /**
@@ -469,13 +589,13 @@ class StubIntlDateFormatterTest extends LocaleTestCase
     public function testGetErrorCode()
     {
         $formatter = $this->createStubFormatter();
-        $this->assertEquals(StubIntlDateFormatter::U_ZERO_ERROR, $formatter->getErrorCode());
+        $this->assertEquals(StubIntl::getErrorCode(), $formatter->getErrorCode());
     }
 
     public function testGetErrorMessage()
     {
         $formatter = $this->createStubFormatter();
-        $this->assertEquals(StubIntlDateFormatter::U_ZERO_ERROR_MESSAGE, $formatter->getErrorMessage());
+        $this->assertEquals(StubIntl::getErrorMessage(), $formatter->getErrorMessage());
     }
 
     public function testGetLocale()
@@ -517,26 +637,35 @@ class StubIntlDateFormatterTest extends LocaleTestCase
     /**
      * @dataProvider parseProvider
      */
-    public function testParseIntl($pattern, $value, $expected, $errorCode = 0, $errorMessage = 'U_ZERO_ERROR')
+    public function testParseIntl($pattern, $value, $expected)
     {
+        $errorCode = StubIntl::U_ZERO_ERROR;
+        $errorMessage = 'U_ZERO_ERROR';
+
         $this->skipIfIntlExtensionIsNotLoaded();
         $formatter = $this->createIntlFormatter($pattern);
         $this->assertSame($expected, $formatter->parse($value));
         $this->assertSame($errorMessage, intl_get_error_message());
         $this->assertSame($errorCode, intl_get_error_code());
-        $this->assertSame($errorCode != 0, intl_is_failure(intl_get_error_code()));
+        $this->assertFalse(intl_is_failure(intl_get_error_code()));
     }
 
     /**
      * @dataProvider parseProvider
      */
-    public function testParseStub($pattern, $value, $expected, $errorCode = 0, $errorMessage = 'U_ZERO_ERROR')
+    public function testParseStub($pattern, $value, $expected)
     {
+        $errorCode = StubIntl::U_ZERO_ERROR;
+        $errorMessage = 'U_ZERO_ERROR';
+
         $formatter = $this->createStubFormatter($pattern);
         $this->assertSame($expected, $formatter->parse($value));
         $this->assertSame($errorMessage, StubIntl::getErrorMessage());
         $this->assertSame($errorCode, StubIntl::getErrorCode());
-        $this->assertSame($errorCode != 0, StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertFalse(StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertSame($errorMessage, $formatter->getErrorMessage());
+        $this->assertSame($errorCode, $formatter->getErrorCode());
+        $this->assertFalse(StubIntl::isFailure($formatter->getErrorCode()));
     }
 
     public function parseProvider()
@@ -551,18 +680,10 @@ class StubIntlDateFormatterTest extends LocaleTestCase
             array('y-MMM-d', '1970-Jan-1', 0),
             array('y-MMMM-d', '1970-January-1', 0),
 
-            // 1 char month
-            array('y-MMMMM-d', '1970-J-1', false, 9, 'Date parsing failed: U_PARSE_ERROR'),
-            array('y-MMMMM-d', '1970-S-1', false, 9, 'Date parsing failed: U_PARSE_ERROR'),
-
             // standalone months
             array('y-L-d', '1970-1-1', 0),
             array('y-LLL-d', '1970-Jan-1', 0),
             array('y-LLLL-d', '1970-January-1', 0),
-
-            // standalone 1 char month
-            array('y-LLLLL-d', '1970-J-1', false, 9, 'Date parsing failed: U_PARSE_ERROR'),
-            array('y-LLLLL-d', '1970-S-1', false, 9, 'Date parsing failed: U_PARSE_ERROR'),
 
             // days
             array('y-M-d', '1970-1-1', 0),
@@ -691,6 +812,56 @@ class StubIntlDateFormatterTest extends LocaleTestCase
     }
 
     /**
+     * @dataProvider parseErrorProvider
+     */
+    public function testParseErrorIntl($pattern, $value)
+    {
+        $errorCode = StubIntl::U_PARSE_ERROR;
+        $errorMessage = 'Date parsing failed: U_PARSE_ERROR';
+
+        $this->skipIfIntlExtensionIsNotLoaded();
+        $formatter = $this->createIntlFormatter($pattern);
+        $this->assertFalse($formatter->parse($value));
+        $this->assertSame($errorMessage, intl_get_error_message());
+        $this->assertSame($errorCode, intl_get_error_code());
+        $this->assertTrue(intl_is_failure(intl_get_error_code()));
+    }
+
+    /**
+     * @dataProvider parseErrorProvider
+     */
+    public function testParseErrorStub($pattern, $value)
+    {
+        $errorCode = StubIntl::U_PARSE_ERROR;
+        $errorMessage = 'Date parsing failed: U_PARSE_ERROR';
+
+        $formatter = $this->createStubFormatter($pattern);
+        $this->assertFalse($formatter->parse($value));
+        $this->assertSame($errorMessage, StubIntl::getErrorMessage());
+        $this->assertSame($errorCode, StubIntl::getErrorCode());
+        $this->assertTrue(StubIntl::isFailure(StubIntl::getErrorCode()));
+        $this->assertSame($errorMessage, $formatter->getErrorMessage());
+        $this->assertSame($errorCode, $formatter->getErrorCode());
+        $this->assertTrue(StubIntl::isFailure($formatter->getErrorCode()));
+    }
+
+    public function parseErrorProvider()
+    {
+        return array(
+            array('y-M-d', '1970/1/1'),
+            array('yy-M-d', '70/1/1'),
+
+            // 1 char month
+            array('y-MMMMM-d', '1970-J-1'),
+            array('y-MMMMM-d', '1970-S-1'),
+
+            // standalone 1 char month
+            array('y-LLLLL-d', '1970-J-1'),
+            array('y-LLLLL-d', '1970-S-1'),
+        );
+    }
+
+    /**
      * Just to document the differences between the stub and the intl implementations. The intl can parse
      * any of the tested formats alone. The stub does not implement them as it would be needed to add more
      * abstraction, passing more context to the transformers objects. Any of the formats are ignored alone
@@ -786,7 +957,7 @@ class StubIntlDateFormatterTest extends LocaleTestCase
     }
 
     /**
-     * @expectedException Symfony\Component\Locale\Exception\MethodNotImplementedException
+     * @expectedException Symfony\Component\Locale\Exception\MethodArgumentValueNotImplementedException
      */
     public function testSetLenient()
     {
@@ -872,11 +1043,13 @@ class StubIntlDateFormatterTest extends LocaleTestCase
         return new \IntlDateFormatter('en', \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT, 'UTC', \IntlDateFormatter::GREGORIAN, $pattern);
     }
 
-    protected function createDateTime($timestamp = null, $timeZone = null)
+    protected function createDateTime($timestamp = null)
     {
+        $timeZone = getenv('TZ') ?: 'UTC';
+
         $dateTime = new \DateTime();
         $dateTime->setTimestamp(null === $timestamp ? time() : $timestamp);
-        $dateTime->setTimeZone(new \DateTimeZone(null === $timeZone ? date_default_timezone_get() : $timeZone));
+        $dateTime->setTimeZone(new \DateTimeZone($timeZone));
 
         return $dateTime;
     }
